@@ -27,15 +27,12 @@ export default function DiscordClone() {
                     <TooltipProvider key={server}>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <button
-                                    className={twJoin(`w-12 h-12 flex items-center justify-center rounded-2xl border-2 duration-200 aspect-square`,
-                                        active === server
-                                            ? "bg-primary text-background"
-                                            : "hover:bg-primary hover:text-background"
-                                    )}
+                                <Button
+                                    variant="contrast"
+                                    className={twJoin(`size-12`, active === server && "bg-primary text-background")}
                                 >
                                     <span className="capitalize font-bold text-lg">{server.charAt(0).toUpperCase()}</span>
-                                </button>
+                                </Button>
                             </TooltipTrigger>
                             <TooltipContent side="right">
                                 <p className="capitalize">{server}</p>
@@ -49,7 +46,7 @@ export default function DiscordClone() {
                         <TooltipTrigger asChild>
                             <Button
                                 variant="ghost"
-                                className="rounded-2xl border-2  duration-200 p-0 w-12 h-12 flex items-center justify-center"
+                                className="rounded-2xl border-2  duration-200 p-0 size-12 flex items-center justify-center"
                             >
                                 <PlusIcon />
                             </Button>
@@ -79,21 +76,21 @@ export default function DiscordClone() {
             <section className="flex-1 flex flex-col">
                 <div className="h-12 flex items-center px-4">
                     <div className="flex items-center">
-                        <Hash className="h-5 w-5 text-zinc-400 mr-1" />
+                        <Hash className="size-5 text-zinc-400 mr-1" />
                         <h3 className="font-bold text-white capitalize">{activeChannel}</h3>
                     </div>
                     <div className="ml-auto flex items-center gap-4">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                            <Bell className="h-5 w-5 text-zinc-400" />
+                        <Button variant="ghost" size="icon" className="size-8 rounded-full">
+                            <Bell className="size-5 text-zinc-400" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                            <Users className="h-5 w-5 text-zinc-400" />
+                        <Button variant="ghost" size="icon" className="size-8 rounded-full">
+                            <Users className="size-5 text-zinc-400" />
                         </Button>
                         <div className="relative">
-                            <Search className="h-5 w-5 text-zinc-400 absolute left-2 top-1/2 transform -translate-y-1/2" />
+                            <Search className="size-5 text-zinc-400 absolute left-2 top-1/2 transform -translate-y-1/2" />
                             <Input
                                 placeholder="Search"
-                                className="pl-9 h-8 bg-zinc-900 border-zinc-700  w-40 focus:w-60 transition-all duration-300"
+                                className="pl-9 h-8 bg-zinc-900 border-zinc-700 w-40 focus:w-60 transition-all duration-300"
                             />
                         </div>
                     </div>
@@ -102,8 +99,8 @@ export default function DiscordClone() {
                 <ScrollArea className="flex-1 p-4">
                     <div className="grid gap-y-3">
                         <div className="flex flex-col items-center justify-center text-center p-8">
-                            <div className="w-16 h-16 bg-foreground text-background rounded-full flex items-center justify-center mb-4">
-                                <Hash className="h-8 w-8" />
+                            <div className="size-16 bg-foreground text-background rounded-full flex items-center justify-center mb-4">
+                                <Hash className="size-8" />
                             </div>
                             <h2 className="text-2xl font-bold mb-1">Welcome to #{activeChannel}!</h2>
                             <p className="text-zinc-400 max-w-md">
@@ -137,7 +134,7 @@ export default function DiscordClone() {
                     {onlineUsers.map((user, i) => (
                         <div key={user} className="flex items-center gap-2">
                             <div className="relative">
-                                <Avatar className="h-8 w-8">
+                                <Avatar className="size-8">
                                     <AvatarImage src="" alt={`User ${user}`} />
                                     <AvatarFallback>{user.charAt(0)}</AvatarFallback>
                                 </Avatar>
@@ -176,7 +173,7 @@ function ChatChannel({
                             activeChannel === channel ? "bg-accent text-foreground/100" : "hover:bg-accent"
                         )}
                     >
-                        <Hash className="h-4 w-4" />
+                        <Hash className="size-4" />
                         <span className="capitalize">{channel}</span>
                     </button>
                 ))}
@@ -194,7 +191,7 @@ function UserChannel({
 }) {
     return (
         <div className="p-2 flex items-center gap-2">
-            <Avatar className="h-8 w-8">
+            <Avatar className="size-8">
                 <AvatarImage src="" alt="User" />
                 <AvatarFallback>U</AvatarFallback>
             </Avatar>
@@ -205,14 +202,14 @@ function UserChannel({
             </div>
 
             <div className="flex gap-1">
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                    <Mic className="h-4 w-4" />
+                <Button variant="ghost" size="icon" className="size-8 rounded-full">
+                    <Mic className="size-4" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                    <Headphones className="h-4 w-4" />
+                <Button variant="ghost" size="icon" className="size-8 rounded-full">
+                    <Headphones className="size-4" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                    <Settings className="h-4 w-4" />
+                <Button variant="ghost" size="icon" className="size-8 rounded-full">
+                    <Settings className="size-4" />
                 </Button>
             </div>
         </div>
@@ -232,7 +229,7 @@ function ChatMesaage({
 }: Message) {
     return (
         <article className="flex gap-3 group hover:bg-foreground/5 p-2 rounded-lg duration-200">
-            <Avatar className="h-10 w-10 mt-0.5">
+            <Avatar className="size-10 mt-0.5">
                 <AvatarImage src="" alt={user} />
                 <AvatarFallback>{user.charAt(0)}</AvatarFallback>
             </Avatar>
