@@ -1,14 +1,43 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
 	"github.com/khalidibnwalid/Luma/core"
 	"github.com/khalidibnwalid/Luma/server/middlewares"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
+type AppContext struct {
+	db *mongo.Client
+}
+
 func main() {
+	fmt.Println("Server Started")
+
+	mongodbUrl := "mongodb://root:example@localhost:27017/"
+
+	var (
+		client *mongo.Client
+		err    error
+	)
+	// MongoDB
+	if client, err = core.CreateMongoClient(mongodbUrl); err != nil {
+		panic(err)
+	}
+
+	if err = core.PingDB(client, "Luma"); err != nil {
+		panic(err)
+	}
+
+	defer func() {
+		err = client.Disconnect(context.Background())
+	}()
+	fmt.Printf("Connected to MongoDB")
+
+	// Server
 	app := core.NewApp()
 	app.Use(middlewares.Logging)
 	app.HandleFunc("/hello", func(w http.ResponseWriter, req *http.Request) {
@@ -23,7 +52,6 @@ func main() {
 	}
 
 	server.ListenAndServe()
-	// app.ha
 }
 
 // func routes() *http.ServeMux {
