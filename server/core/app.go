@@ -22,6 +22,7 @@ func (s *App) Use(mw ...Middleware) {
 	s.middlewares = append(s.middlewares, mw...)
 }
 
+// wraps handlers with middlewares
 func (s *App) HandleFunc(pattern string, handler http.HandlerFunc) {
 	lastMiddleware := len(s.middlewares) - 1
 

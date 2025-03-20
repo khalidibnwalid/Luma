@@ -6,17 +6,12 @@ import (
 	"net/http"
 
 	"github.com/khalidibnwalid/Luma/core"
+	"github.com/khalidibnwalid/Luma/handlers"
 	"github.com/khalidibnwalid/Luma/server/middlewares"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
-type AppContext struct {
-	db *mongo.Client
-}
-
 func main() {
-	fmt.Println("Server Started")
-
 	mongodbUrl := "mongodb://root:example@localhost:27017/"
 
 	var (
@@ -35,14 +30,22 @@ func main() {
 	defer func() {
 		err = client.Disconnect(context.Background())
 	}()
-	fmt.Printf("Connected to MongoDB")
+	fmt.Printf("Connected to MongoDB\n")
+
+	ctx := &handlers.HandlerContext{
+		Db:     client.Database("Luma"),
+		Client: client,
+	}
 
 	// Server
 	app := core.NewApp()
 	app.Use(middlewares.Logging)
-	app.HandleFunc("/hello", func(w http.ResponseWriter, req *http.Request) {
-		fmt.Fprintf(w, "hello\n")
-	})
+
+	app.HandleFunc("GET /user/{username}", ctx.UserGET)
+	// app.HandleFunc("POST /user", ) // signup
+	// app.HandleFunc("PATCH /user/{id}", )
+	// app.HandleFunc("DELETE /user/{id}", )
+
 	v1 := http.NewServeMux()
 	v1.Handle("/v1/", http.StripPrefix("/v1", app.Mux))
 
@@ -51,14 +54,6 @@ func main() {
 		Handler: v1,
 	}
 
+	fmt.Printf("Server Listening on port 8080\n")
 	server.ListenAndServe()
 }
-
-// func routes() *http.ServeMux {
-// 	mux := http.NewServeMux()
-// 	mux.HandleFunc("/hello", func(w http.ResponseWriter, req *http.Request) {
-// 		fmt.Fprintf(w, "hello\n")
-// 	})
-
-// 	return mux
-// }
