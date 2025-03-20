@@ -2,24 +2,38 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"log"
 	"net/http"
+	"os"
+	"strings"
 
+	"github.com/joho/godotenv"
 	"github.com/khalidibnwalid/Luma/core"
 	"github.com/khalidibnwalid/Luma/handlers"
-	"github.com/khalidibnwalid/Luma/server/middlewares"
+	"github.com/khalidibnwalid/Luma/middlewares"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 func main() {
-	mongodbUrl := "mongodb://root:example@localhost:27017/"
-
 	var (
 		client *mongo.Client
 		err    error
 	)
+
+	// Environment Variables
+	err = godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	log.Println("Loaded .env file")
+
+	mongoUri := os.Getenv("MONGO_URI")
+	dbName := os.Getenv("DB_NAME")
+	port := ":" + os.Getenv("PORT")
+
 	// MongoDB
-	if client, err = core.CreateMongoClient(mongodbUrl); err != nil {
+	if client, err = core.CreateMongoClient(mongoUri); err != nil {
 		panic(err)
 	}
 
@@ -30,10 +44,10 @@ func main() {
 	defer func() {
 		err = client.Disconnect(context.Background())
 	}()
-	fmt.Printf("Connected to MongoDB\n")
+	log.Printf("Connected to MongoDB\n")
 
 	ctx := &handlers.HandlerContext{
-		Db:     client.Database("Luma"),
+		Db:     client.Database(dbName),
 		Client: client,
 	}
 
@@ -50,10 +64,10 @@ func main() {
 	v1.Handle("/v1/", http.StripPrefix("/v1", app.Mux))
 
 	server := http.Server{
-		Addr:    ":8080",
+		Addr:    port,
 		Handler: v1,
 	}
 
-	fmt.Printf("Server Listening on port 8080\n")
+	log.Printf("Server Listening on port %s\n",strings.Replace(port, ":", "", 1))
 	server.ListenAndServe()
 }
