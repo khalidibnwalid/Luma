@@ -31,6 +31,7 @@ func main() {
 	mongoUri := os.Getenv("MONGO_URI")
 	dbName := os.Getenv("DB_NAME")
 	port := ":" + os.Getenv("PORT")
+	jwtSecret := os.Getenv("JWT_SECRET")
 
 	// MongoDB
 	if client, err = core.CreateMongoClient(mongoUri); err != nil {
@@ -49,25 +50,33 @@ func main() {
 	ctx := &handlers.HandlerContext{
 		Db:     client.Database(dbName),
 		Client: client,
+		JwtSecret: jwtSecret,
 	}
 
 	// Server
-	app := core.NewApp()
-	app.Use(middlewares.Logging)
+	authedRoutes := core.NewApp()
+	authedRoutes.Use(middlewares.Logging)
+	authedRoutes.Use(middlewares.JwtAuthBuilder(jwtSecret))
 
-	app.HandleFunc("GET /user/{username}", ctx.UserGET)
+	authedRoutes.HandleFunc("GET /user/{username}", ctx.UserGET)
 	// app.HandleFunc("POST /user", ) // signup
 	// app.HandleFunc("PATCH /user/{id}", )
 	// app.HandleFunc("DELETE /user/{id}", )
 
+	unAuthedRoutes := core.NewApp()
+	unAuthedRoutes.Use(middlewares.Logging)
+	unAuthedRoutes.HandleFunc("POST /login", ctx.AuthLogin)
+	// unAuthedRoutes.HandleFunc("GET /login", ctx.AuthGET) //test
+
 	v1 := http.NewServeMux()
-	v1.Handle("/v1/", http.StripPrefix("/v1", app.Mux))
+	v1.Handle("/v1/", http.StripPrefix("/v1", authedRoutes.Mux))
+	v1.Handle("/v1/auth/", http.StripPrefix("/v1/auth", unAuthedRoutes.Mux))
 
 	server := http.Server{
 		Addr:    port,
 		Handler: v1,
 	}
 
-	log.Printf("Server Listening on port %s\n",strings.Replace(port, ":", "", 1))
+	log.Printf("Server Listening on port %s\n", strings.Replace(port, ":", "", 1))
 	server.ListenAndServe()
 }

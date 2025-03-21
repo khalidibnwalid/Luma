@@ -7,4 +7,5 @@ import (
 type HandlerContext struct {
 	Db *mongo.Database
 	Client *mongo.Client
+	JwtSecret string
 }
