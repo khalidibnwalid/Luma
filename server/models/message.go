@@ -6,6 +6,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 type Message struct {
@@ -30,9 +31,16 @@ func (msg *Message) Create(db *mongo.Database) error {
 	return nil
 }
 
-func (msg *Message) GetAllMessages(db *mongo.Database, channelID string) ([]Message, error) {
+// default limit is 50
+func (msg *Message) GetAllMessages(db *mongo.Database, room_id string, limit ...int64) ([]Message, error) {
 	coll := db.Collection("messages")
-	cursor, err := coll.Find(context.TODO(), bson.M{"channel_id": channelID})
+	limitVal := int64(50)
+	if len(limit) > 0 {
+		limitVal = limit[0]
+	}
+	opts := options.Find().SetLimit(limitVal)
+
+	cursor, err := coll.Find(context.TODO(), bson.M{"room_id": room_id}, opts)
 	if err != nil {
 		return nil, err
 	}

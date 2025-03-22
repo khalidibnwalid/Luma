@@ -61,6 +61,7 @@ func main() {
 	authedRoutes.Use(middlewares.JwtAuthBuilder(jwtSecret))
 
 	authedRoutes.HandleFunc("GET /user/{username}", ctx.UserGET)
+	authedRoutes.HandleFunc("GET /room/{id}/messages", ctx.RoomMessagesGET)
 	authedRoutes.HandleFunc("/room/{id}", ctx.RoomWS(topicStore))
 	// app.HandleFunc("POST /user", ) // signup
 	// app.HandleFunc("PATCH /user/{id}", )
