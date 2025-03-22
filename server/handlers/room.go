@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/gorilla/websocket"
+	"github.com/khalidibnwalid/Luma/models"
 )
 
 var upgrader = websocket.Upgrader{
@@ -15,9 +16,15 @@ var upgrader = websocket.Upgrader{
 
 func (ctx *HandlerContext) RoomWS(rooms *Rooms) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		roomName := r.PathValue("id")
-		if roomName == "" {
+		roomID := r.PathValue("id")
+		if roomID == "" {
 			http.Error(w, "Room ID is required", http.StatusBadRequest)
+			return
+		}
+
+		roomData := models.Room{}
+		if err := roomData.FindById(ctx.Db, roomID); err != nil {
+			http.Error(w, "Room not found", http.StatusNotFound)
 			return
 		}
 
@@ -28,7 +35,8 @@ func (ctx *HandlerContext) RoomWS(rooms *Rooms) http.HandlerFunc {
 		}
 		defer conn.Close()
 
-		room := rooms.GetOrCreateRoom(roomName)
+		log.Printf("Room [%s] Connected\n", roomID)
+		room := rooms.GetOrCreateRoom(roomData.ID.String())
 		room.subscribe(conn)
 		defer room.unsubscribe(conn)
 
@@ -39,7 +47,7 @@ func (ctx *HandlerContext) RoomWS(rooms *Rooms) http.HandlerFunc {
 				break
 			}
 			room.publish(messageType, p)
-			log.Printf("Room [%s] Received: %s\n", roomName, p)
+			log.Printf("Room [%s] Received: %s\n", roomID, p)
 		}
 	}
 }
