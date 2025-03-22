@@ -53,7 +53,7 @@ func main() {
 		JwtSecret: jwtSecret,
 	}
 
-	rooms := handlers.NewRooms()
+	topicStore := core.NewTopicStore()
 
 	// Server
 	authedRoutes := core.NewApp()
@@ -61,7 +61,7 @@ func main() {
 	authedRoutes.Use(middlewares.JwtAuthBuilder(jwtSecret))
 
 	authedRoutes.HandleFunc("GET /user/{username}", ctx.UserGET)
-	authedRoutes.HandleFunc("/room/{id}", ctx.RoomWS(rooms))
+	authedRoutes.HandleFunc("/room/{id}", ctx.RoomWS(topicStore))
 	// app.HandleFunc("POST /user", ) // signup
 	// app.HandleFunc("PATCH /user/{id}", )
 	// app.HandleFunc("DELETE /user/{id}", )

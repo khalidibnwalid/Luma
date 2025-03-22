@@ -1,11 +1,13 @@
 package handlers
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
-	"sync"
 
 	"github.com/gorilla/websocket"
+	"github.com/khalidibnwalid/Luma/core"
+	"github.com/khalidibnwalid/Luma/middlewares"
 	"github.com/khalidibnwalid/Luma/models"
 )
 
@@ -14,7 +16,13 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-func (ctx *HandlerContext) RoomWS(rooms *Rooms) http.HandlerFunc {
+type msgRes struct {
+	models.Message
+	AuthorID string      `json:"-"`
+	Author   models.User `json:"author"`
+}
+
+func (ctx *HandlerContext) RoomWS(store *core.TopicStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		roomID := r.PathValue("id")
 		if roomID == "" {
@@ -36,70 +44,31 @@ func (ctx *HandlerContext) RoomWS(rooms *Rooms) http.HandlerFunc {
 		defer conn.Close()
 
 		log.Printf("Room [%s] Connected\n", roomID)
-		room := rooms.GetOrCreateRoom(roomData.ID.String())
-		room.subscribe(conn)
-		defer room.unsubscribe(conn)
+		room := store.GetOrCreateRoom(roomData.ID.String())
+		room.Subscribe(conn)
+		defer room.Unsubscribe(conn)
+
+		userId := r.Context().Value(middlewares.CtxUserIDKey).(string)
+		userData := models.User{}
+		userData.FindByID(ctx.Db, userId)
 
 		for {
-			messageType, p, err := conn.ReadMessage()
+			var msg msgRes // only includes the msg
+
+			// needs a validator
+			err := conn.ReadJSON(&msg)
 			if err != nil {
 				log.Println("Read error:", err)
-				break
 			}
-			room.publish(messageType, p)
-			log.Printf("Room [%s] Received: %s\n", roomID, p)
+
+			msg.RoomID = roomID
+			msg.AuthorID = userId
+			msg.Create(ctx.Db)
+			msg.Author = userData
+
+			json, _ := json.Marshal(msg)
+
+			room.Publish([]byte(json))
 		}
 	}
-}
-
-type Room struct {
-	ID      string
-	Clients map[*websocket.Conn]bool
-	mu      sync.Mutex // Mutex to protect the Clients map
-}
-
-func (r *Room) subscribe(conn *websocket.Conn) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.Clients[conn] = true
-}
-
-func (r *Room) unsubscribe(conn *websocket.Conn) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	delete(r.Clients, conn)
-	conn.Close()
-}
-
-func (r *Room) publish(messageType int, message []byte) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	for ws := range r.Clients {
-		if err := ws.WriteMessage(messageType, message); err != nil {
-			log.Println("Broadcast error:", err)
-			r.unsubscribe(ws)
-		}
-	}
-}
-
-type Rooms struct {
-	Rooms map[string]*Room
-}
-
-func NewRooms() *Rooms {
-	return &Rooms{
-		Rooms: make(map[string]*Room),
-	}
-}
-
-func (rs *Rooms) GetOrCreateRoom(id string) *Room {
-	if room, exists := rs.Rooms[id]; exists {
-		return room
-	}
-	room := &Room{
-		ID:      id,
-		Clients: make(map[*websocket.Conn]bool),
-	}
-	rs.Rooms[id] = room
-	return room
 }

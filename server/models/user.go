@@ -12,8 +12,8 @@ type User struct {
 	ID             bson.ObjectID `bson:"_id" json:"id"`
 	Username       string        `bson:"username"`
 	HashedPassword string        `bson:"hashed_password" json:"-"`
-	CreatedAt      int64         `bson:"created_at"`
-	UpdatedAt      int64         `bson:"updated_at"`
+	CreatedAt      int64         `bson:"createdAt"`
+	UpdatedAt      int64         `bson:"updatedAt"`
 }
 
 func (u *User) Create(db *mongo.Database) error {
@@ -37,9 +37,14 @@ func (u *User) FindByUsername(db *mongo.Database, username string) error {
 	return nil
 }
 
-func (u *User) FindByID(db *mongo.Database, username string) error {
+func (u *User) FindByID(db *mongo.Database, id string) error {
 	coll := db.Collection("users")
-	if err := coll.FindOne(context.TODO(), bson.M{"_id": username}).Decode(&u); err != nil {
+	objId, err := bson.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+
+	if err := coll.FindOne(context.TODO(), bson.M{"_id": objId}).Decode(&u); err != nil {
 		return err
 	}
 	return nil

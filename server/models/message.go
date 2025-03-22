@@ -10,11 +10,11 @@ import (
 
 type Message struct {
 	ID        bson.ObjectID `bson:"_id" json:"id"`
-	UserID    string        `bson:"user_id"`
-	RoomID    string        `bson:"room_id"`
-	Message   string        `bson:"message"`
-	CreatedAt int64         `bson:"created_at"`
-	UpdatedAt int64         `bson:"updated_at"`
+	AuthorID  string        `bson:"author_id" json:"authorId"`
+	RoomID    string        `bson:"room_id" json:"roomId"`
+	Message   string        `bson:"message" json:"message"`
+	CreatedAt int64         `bson:"created_at" json:"createdAt"`
+	UpdatedAt int64         `bson:"updated_at" json:"updatedAt"`
 }
 
 func (msg *Message) Create(db *mongo.Database) error {

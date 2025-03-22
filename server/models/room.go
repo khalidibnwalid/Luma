@@ -16,6 +16,7 @@ type Room struct {
 }
 
 func (r *Room) Create(db *mongo.Database) error {
+	r.ID = bson.NewObjectID()
 	r.CreatedAt = time.Now().Unix()
 	r.UpdatedAt = time.Now().Unix()
 
