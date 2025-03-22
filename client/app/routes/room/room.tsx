@@ -1,12 +1,12 @@
-import { Bell, Hash, Headphones, Mic, PencilIcon, Plus, PlusIcon, Search, Settings, TrashIcon, Users } from "lucide-react"
+import { Bell, Hash, Headphones, Mic, PencilIcon, Plus, Search, Settings, TrashIcon, Users } from "lucide-react"
 import { twJoin } from "tailwind-merge"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import { Button } from "~/components/ui/button"
 import { Input } from "~/components/ui/input"
 import { ScrollArea } from "~/components/ui/scroll-area"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
+import type { Route } from "./+types/room"
 
-export default function DiscordClone() {
+export default function RoomPage({ params: { serverId,roomId } }: Route.LoaderArgs) {
     const active = "general"
     const activeChannel = "welcome"
 
@@ -20,44 +20,7 @@ export default function DiscordClone() {
     ]
 
     return (
-        <main className="flex h-screen">
-            <section className="w-16 flex flex-col items-center py-3 gap-2 overflow-y-auto">
-
-                {["general", "gaming", "dev", "dev", "art"].map((server) => (
-                    <TooltipProvider key={server}>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="contrast"
-                                    className={twJoin(`size-12`, active === server && "bg-primary text-background")}
-                                >
-                                    <span className="capitalize font-bold text-lg">{server.charAt(0).toUpperCase()}</span>
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="right">
-                                <p className="capitalize">{server}</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                ))}
-
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant="ghost"
-                                className="rounded-2xl border-2  duration-200 p-0 size-12 flex items-center justify-center"
-                            >
-                                <PlusIcon />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">
-                            <p>Add a Server</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
-            </section>
-
+        <main className="flex h-screen w-full">
             <section className="w-60 bg-foreground/5 flex flex-col">
                 <div className="p-4 shadow-md">
                     <h2 className="font-bold text-lg capitalize">{active}</h2>
