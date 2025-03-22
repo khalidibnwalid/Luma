@@ -48,10 +48,12 @@ func main() {
 	log.Printf("Connected to MongoDB\n")
 
 	ctx := &handlers.HandlerContext{
-		Db:     client.Database(dbName),
-		Client: client,
+		Db:        client.Database(dbName),
+		Client:    client,
 		JwtSecret: jwtSecret,
 	}
+
+	rooms := handlers.NewRooms()
 
 	// Server
 	authedRoutes := core.NewApp()
@@ -59,6 +61,7 @@ func main() {
 	authedRoutes.Use(middlewares.JwtAuthBuilder(jwtSecret))
 
 	authedRoutes.HandleFunc("GET /user/{username}", ctx.UserGET)
+	authedRoutes.HandleFunc("/room/{id}", ctx.RoomWS(rooms))
 	// app.HandleFunc("POST /user", ) // signup
 	// app.HandleFunc("PATCH /user/{id}", )
 	// app.HandleFunc("DELETE /user/{id}", )
