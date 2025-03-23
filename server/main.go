@@ -4,83 +4,49 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 
-	"github.com/joho/godotenv"
 	"github.com/khalidibnwalid/Luma/core"
 	"github.com/khalidibnwalid/Luma/handlers"
 	"github.com/khalidibnwalid/Luma/middlewares"
-	"go.mongodb.org/mongo-driver/v2/mongo"
+	"github.com/khalidibnwalid/Luma/models"
 )
 
 func main() {
-	var (
-		client *mongo.Client
-		err    error
-	)
-
-	// Environment Variables
-	err = godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
-	log.Println("Loaded .env file")
-
-	mongoUri := os.Getenv("MONGO_URI")
-	dbName := os.Getenv("DB_NAME")
-	port := ":" + os.Getenv("PORT")
-	jwtSecret := os.Getenv("JWT_SECRET")
-
-	// MongoDB
-	if client, err = core.CreateMongoClient(mongoUri); err != nil {
-		panic(err)
-	}
-
-	if err = core.PingDB(client, "Luma"); err != nil {
-		panic(err)
-	}
-
+	env := models.GetEnv()
+	ctx := handlers.NewHandlerContext(env.MongoUri, env.DbName, env.JwtSecret)
 	defer func() {
-		err = client.Disconnect(context.Background())
+		_ = ctx.Client.Disconnect(context.Background())
 	}()
-	log.Printf("Connected to MongoDB\n")
-
-	ctx := &handlers.HandlerContext{
-		Db:        client.Database(dbName),
-		Client:    client,
-		JwtSecret: jwtSecret,
-	}
-
 	topicStore := core.NewTopicStore()
 
 	// Server
 	authedRoutes := core.NewApp()
 	authedRoutes.Use(middlewares.Logging)
-	authedRoutes.Use(middlewares.JwtAuthBuilder(jwtSecret))
+	authedRoutes.Use(middlewares.JwtAuthBuilder(env.JwtSecret))
 
+	// user data routes
 	authedRoutes.HandleFunc("GET /user/{username}", ctx.UserGET)
+	// server routes
+	// authedRoutes.HandleFunc("GET /server/{id}", ctx.RoomsServerGET)
+	// authedRoutes.HandleFunc("POST /server", ctx.RoomsServerPOST)
+	// room routes
 	authedRoutes.HandleFunc("GET /room/{id}/messages", ctx.RoomMessagesGET)
 	authedRoutes.HandleFunc("/room/{id}", ctx.RoomWS(topicStore))
-	// app.HandleFunc("POST /user", ) // signup
-	// app.HandleFunc("PATCH /user/{id}", )
-	// app.HandleFunc("DELETE /user/{id}", )
 
 	unAuthedRoutes := core.NewApp()
 	unAuthedRoutes.Use(middlewares.Logging)
 	unAuthedRoutes.HandleFunc("POST /login", ctx.AuthLogin)
-	// unAuthedRoutes.HandleFunc("GET /login", ctx.AuthGET) //test
 
 	v1 := http.NewServeMux()
 	v1.Handle("/v1/", http.StripPrefix("/v1", authedRoutes.Mux))
 	v1.Handle("/v1/auth/", http.StripPrefix("/v1/auth", unAuthedRoutes.Mux))
 
 	server := http.Server{
-		Addr:    port,
+		Addr:    env.Port,
 		Handler: v1,
 	}
 
-	log.Printf("Server Listening on port %s\n", strings.Replace(port, ":", "", 1))
+	log.Printf("Server Listening on port %s\n", strings.Replace(env.Port, ":", "", 1))
 	server.ListenAndServe()
 }
