@@ -27,9 +27,12 @@ func main() {
 
 	// user data routes
 	authedRoutes.HandleFunc("GET /user/{username}", ctx.UserGET)
-	// server routes
-	// authedRoutes.HandleFunc("GET /server/{id}", ctx.RoomsServerGET)
-	// authedRoutes.HandleFunc("POST /server", ctx.RoomsServerPOST)
+
+	// servers routes
+	authedRoutes.HandleFunc("GET /servers", ctx.UserRoomsServerGET)
+	authedRoutes.HandleFunc("POST /servers", ctx.RoomsServerPOST)
+	authedRoutes.HandleFunc("GET /servers/{id}", ctx.RoomsServerGET)
+
 	// room routes
 	authedRoutes.HandleFunc("GET /room/{id}/messages", ctx.RoomMessagesGET)
 	authedRoutes.HandleFunc("/room/{id}", ctx.RoomWS(topicStore))

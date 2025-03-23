@@ -10,10 +10,10 @@ import (
 
 type User struct {
 	ID             bson.ObjectID `bson:"_id" json:"id"`
-	Username       string        `bson:"username"`
+	Username       string        `bson:"username" json:"username"`
 	HashedPassword string        `bson:"hashed_password" json:"-"`
-	CreatedAt      int64         `bson:"createdAt"`
-	UpdatedAt      int64         `bson:"updatedAt"`
+	CreatedAt      int64         `bson:"createdAt" json:"createdAt"`
+	UpdatedAt      int64         `bson:"updatedAt" json:"updatedAt"`
 }
 
 func (u *User) Create(db *mongo.Database) error {

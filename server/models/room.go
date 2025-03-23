@@ -10,9 +10,10 @@ import (
 
 type Room struct {
 	ID        bson.ObjectID `bson:"_id" json:"id"`
-	Type      string        `bson:"type"` // direct, server room, or group
-	CreatedAt int64         `bson:"created_at"`
-	UpdatedAt int64         `bson:"updated_at"`
+	ServerID  bson.ObjectID `bson:"server_id" json:"serverId"`
+	Type      string        `bson:"type" json:"type"` // direct, server room, or group
+	CreatedAt int64         `bson:"created_at" json:"createdAt"`
+	UpdatedAt int64         `bson:"updated_at" json:"updatedAt"`
 }
 
 func (r *Room) Create(db *mongo.Database) error {
