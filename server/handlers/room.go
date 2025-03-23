@@ -14,6 +14,9 @@ import (
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
 }
 
 type msgRes struct {
@@ -68,6 +71,8 @@ func (ctx *HandlerContext) RoomWS(store *core.TopicStore) http.HandlerFunc {
 			err := conn.ReadJSON(&msg)
 			if err != nil {
 				log.Println("Read error:", err)
+				roomTopic.Unsubscribe(conn)
+				break
 			}
 
 			msg.RoomID = room.ID.String()
