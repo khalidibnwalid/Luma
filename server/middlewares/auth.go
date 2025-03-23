@@ -19,8 +19,11 @@ func JwtAuthBuilder(secret string) core.Middleware {
 			tokenString := r.Header.Get("Authorization")
 			tokenString = strings.Replace(tokenString, "Bearer ", "", 1)
 			if tokenString == "" {
-				unahuthorized(w)
-				return
+				tokenString = r.URL.Query().Get("jwt")
+				if tokenString == "" {
+					unahuthorized(w)
+					return
+				}
 			}
 
 			_, claims, ok := core.ValidateJwtToken(secret, tokenString)
