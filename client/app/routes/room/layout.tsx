@@ -1,28 +1,26 @@
 import { PlusIcon } from "lucide-react"
 import { Outlet } from "react-router"
 import { twJoin } from "tailwind-merge"
-import { ThemeProvider } from "~/components/providers/theme-provider"
+import LayoutProviders from "~/components/providers/layout-providers"
 import { Button } from "~/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
-import type { Server } from "~/types/server"
 import type { Route } from "../../+types/root"
 
 export default function RoomLayout(params: Route.LoaderArgs) {
     console.log(params.params.serverId)
     const active = "general"
-    const servers: Server[] = [
-        { name: "general", rooms: [], id: "1" },
-        { name: "music", rooms: [], id: "1" },
-        { name: "gaming", rooms: [], id: "1" },
-        { name: "programming", rooms: [], id: "1" },
-        { name: "design", rooms: [], id: "1" },
+    const servers = [
+        { name: "general", id: "1" },
+        { name: "music", id: "1" },
+        { name: "gaming", id: "1" },
+        { name: "programming", id: "1" },
+        { name: "design", id: "1" },
     ]
 
     return (
-        <div className="w-full h-screen flex">
-            <ThemeProvider defaultTheme="dark">
+        <LayoutProviders>
+            <div className="w-full h-screen flex">
                 <section className="w-16 flex flex-col items-center py-3 gap-2 overflow-y-auto">
-
                     {servers.map((server) => (
                         <TooltipProvider key={server.name}>
                             <Tooltip>
@@ -58,7 +56,7 @@ export default function RoomLayout(params: Route.LoaderArgs) {
                     </TooltipProvider>
                 </section>
                 <Outlet />
-            </ThemeProvider>
-        </div>
+            </div>
+        </LayoutProviders>
     )
 }
