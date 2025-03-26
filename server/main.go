@@ -47,7 +47,7 @@ func main() {
 
 	server := http.Server{
 		Addr:    env.Port,
-		Handler: v1,
+		Handler: middlewares.CORS(v1),
 	}
 
 	log.Printf("Server Listening on port %s\n", strings.Replace(env.Port, ":", "", 1))
