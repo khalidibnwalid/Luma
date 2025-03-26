@@ -61,6 +61,28 @@ func GetRoomsServersByOwner(db *mongo.Database, ownerID bson.ObjectID) ([]RoomsS
 	return servers, nil
 }
 
+func GetRoomsOfServer(db *mongo.Database, serverID string) ([]Room, error) {
+	coll := db.Collection("rooms")
+
+	objId, err := bson.ObjectIDFromHex(serverID)
+	if err != nil {
+		return nil, err
+	}
+
+	cursor, err := coll.Find(context.TODO(), bson.M{"server_id": objId})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(context.Background())
+
+	var rooms []Room
+	if err := cursor.All(context.Background(), &rooms); err != nil {
+		return nil, err
+	}
+
+	return rooms, nil
+}
+
 func (r *RoomsServer) Update(db *mongo.Database) error {
 	r.UpdatedAt = time.Now().Unix()
 	coll := db.Collection(ServerCollection)

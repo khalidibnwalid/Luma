@@ -25,7 +25,7 @@ func (ctx *HandlerContext) validateRoomsServerID(w http.ResponseWriter, r *http.
 	return serverData, nil
 }
 
-func (ctx *HandlerContext) RoomsServerGET(w http.ResponseWriter, r *http.Request) {
+func (ctx *HandlerContext) GetRoomsServer(w http.ResponseWriter, r *http.Request) {
 	server, err := ctx.validateRoomsServerID(w, r)
 	if err != nil {
 		return
@@ -37,7 +37,8 @@ func (ctx *HandlerContext) RoomsServerGET(w http.ResponseWriter, r *http.Request
 
 }
 
-func (ctx *HandlerContext) UserRoomsServerGET(w http.ResponseWriter, r *http.Request) {
+// get all servers of a user
+func (ctx *HandlerContext) GetUserRoomsServer(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(middlewares.CtxUserIDKey).(string)
 	objUserId, _ := bson.ObjectIDFromHex(userID)
 
@@ -52,7 +53,7 @@ func (ctx *HandlerContext) UserRoomsServerGET(w http.ResponseWriter, r *http.Req
 	w.Write(json)
 }
 
-func (ctx *HandlerContext) RoomsServerPOST(w http.ResponseWriter, r *http.Request) {
+func (ctx *HandlerContext) PostRoomsServer(w http.ResponseWriter, r *http.Request) {
 	var t struct {
 		Name string `json:"name"`
 	}
@@ -66,10 +67,6 @@ func (ctx *HandlerContext) RoomsServerPOST(w http.ResponseWriter, r *http.Reques
 	}
 
 	name := t.Name
-	// if name == "" {
-	// 	http.Error(w, "Name is required", http.StatusBadRequest)
-	// 	return
-	// }
 
 	userID := r.Context().Value(middlewares.CtxUserIDKey).(string)
 	objUserId, _ := bson.ObjectIDFromHex(userID)
@@ -85,6 +82,66 @@ func (ctx *HandlerContext) RoomsServerPOST(w http.ResponseWriter, r *http.Reques
 	}
 
 	json, _ := json.Marshal(server)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(json)
+}
+
+func (ctx *HandlerContext) GetRoomsOfServer(w http.ResponseWriter, r *http.Request) {
+	server, err := ctx.validateRoomsServerID(w, r)
+	if err != nil {
+		return
+	}
+
+	rooms, err := models.GetRoomsOfServer(ctx.Db, server.ID.Hex())
+	if err != nil {
+		http.Error(w, "Error getting rooms", http.StatusInternalServerError)
+		return
+	}
+
+	json, _ := json.Marshal(rooms)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(json)
+}
+
+func (ctx *HandlerContext) PostRoomToServer(w http.ResponseWriter, r *http.Request) {
+	server, err := ctx.validateRoomsServerID(w, r)
+	if err != nil {
+		return
+	}
+
+	var t struct {
+		Type      string `json:"type"`
+		Name      string `json:"name"`
+		GroupName string `json:"groupName"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	if t.Type == "" {
+		http.Error(w, "Type is required", http.StatusBadRequest)
+		return
+	}
+
+	if t.Name == "" {
+		http.Error(w, "Name is required", http.StatusBadRequest)
+		return
+	}
+
+	room := models.Room{
+		ServerID: server.ID,
+		Type:     t.Type,
+		Name:     t.Name,
+		GroupName: t.GroupName,
+	}
+
+	if err := room.Create(ctx.Db); err != nil {
+		http.Error(w, "Error creating room", http.StatusInternalServerError)
+		return
+	}
+
+	json, _ := json.Marshal(room)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(json)
 }

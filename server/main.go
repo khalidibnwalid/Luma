@@ -29,9 +29,12 @@ func main() {
 	authedRoutes.HandleFunc("GET /user/{username}", ctx.UserGET)
 
 	// servers routes
-	authedRoutes.HandleFunc("GET /servers", ctx.UserRoomsServerGET)
-	authedRoutes.HandleFunc("POST /servers", ctx.RoomsServerPOST)
-	authedRoutes.HandleFunc("GET /servers/{id}", ctx.RoomsServerGET)
+	authedRoutes.HandleFunc("GET /servers", ctx.GetUserRoomsServer)
+	authedRoutes.HandleFunc("POST /servers", ctx.PostRoomsServer)
+	// server rooms routes
+	authedRoutes.HandleFunc("GET /server/{id}", ctx.GetRoomsServer)
+	authedRoutes.HandleFunc("GET /server/{id}/rooms", ctx.GetRoomsOfServer)
+	authedRoutes.HandleFunc("POST /server/{id}/rooms", ctx.PostRoomToServer)
 
 	// room routes
 	authedRoutes.HandleFunc("GET /room/{id}/messages", ctx.RoomMessagesGET)

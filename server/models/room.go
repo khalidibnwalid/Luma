@@ -11,7 +11,9 @@ import (
 type Room struct {
 	ID        bson.ObjectID `bson:"_id" json:"id"`
 	ServerID  bson.ObjectID `bson:"server_id" json:"serverId"`
-	Type      string        `bson:"type" json:"type"` // direct, server room, or group
+	Name      string        `bson:"name" json:"name"`
+	GroupName string        `bson:"group_name" json:"groupName"`
+	Type      string        `bson:"type" json:"type"` // direct, server room, server voice room, or users group,
 	CreatedAt int64         `bson:"created_at" json:"createdAt"`
 	UpdatedAt int64         `bson:"updated_at" json:"updatedAt"`
 }
