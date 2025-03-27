@@ -1,15 +1,21 @@
 import { Hash, Headphones, Mic, Settings } from "lucide-react"
-import { Outlet, useOutletContext } from "react-router"
+import { NavLink, Outlet, useOutletContext } from "react-router"
 import { twJoin } from "tailwind-merge"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import { Button } from "~/components/ui/button"
 import { ScrollArea, ScrollBar } from "~/components/ui/scroll-area"
+import { useRoomsQuery } from "~/lib/queries/rooms"
+import type { Room } from "~/types/room"
 import type { ServerLayoutContext } from "../layout"
 import type { Route } from "./+types/layout"
 
-export default function ServerLayout({ params: { serverId, roomId } }: Route.LoaderArgs) {
+export default function ServerLayout({ params: { roomId } }: Route.LoaderArgs) {
     const context = useOutletContext<ServerLayoutContext>()
     const { activeServer } = context
+    if (!activeServer) return <div>Server not found</div>
+
+    const { data: rooms } = useRoomsQuery(activeServer.id)
+    const wrappedContext = { ...context, rooms }
 
     return (
         <main className="flex h-screen w-full">
@@ -19,51 +25,69 @@ export default function ServerLayout({ params: { serverId, roomId } }: Route.Loa
                 </div>
 
                 <ScrollArea className="flex-1 overflow-y-auto">
-                    <div className="p-2">
-                        <ChatRoom activeRoom="welcome" roomName="Text Rooms" rooms={["welcome", "general", "rules", "announcements"]} />
-                    </div>
+                    <ChatRoom activeRoomId={roomId} rooms={rooms} />
                     <ScrollBar />
                 </ScrollArea>
-                {/* {readyState === ReadyState.OPEN &&
-                    <div className="p-2 text-xs text-center text-foreground/50 bg-foreground/5">
-                        <p>Connected</p>
-                    </div>
-                } */}
                 <UserPanel user="User" subText="#000" />
             </section>
-
-            <Outlet context={context} />
+            <Outlet context={wrappedContext} />
         </main >
     )
 }
 
 function ChatRoom({
-    activeRoom,
-    roomName,
-    rooms
+    activeRoomId,
+    rooms = []
 }: {
-    activeRoom?: string,
-    roomName: string
-    rooms: string[]
+    activeRoomId?: string
+    rooms?: Room[]
 }) {
+    const groups = rooms?.reduce((acc, room) => {
+        if (!acc[room.groupName])
+            acc[room.groupName] = []
+        acc[room.groupName].push(room)
+        return acc
+    }, {} as { [key: string]: Room[] }) || []
 
     return (
-        <div className="my-2">
-            <h3 className="p-2 text-xs font-semibold text-foreground uppercase tracking-wide">{roomName}</h3>
-            <div className="grid gap-1">
-                {rooms.map((room) => (
-                    <button
-                        key={room}
-                        className={twJoin(' w-full px-2 py-1 text-sm flex items-center gap-1.5 rounded duration-200 text-foreground/70',
-                            activeRoom === room ? "bg-accent text-foreground/100" : "hover:bg-accent"
-                        )}
-                    >
-                        <Hash className="size-4" />
-                        <span className="capitalize">{room}</span>
-                    </button>
-                ))}
-            </div>
+        <div className="p-2">
+            {Object.entries(groups).map(([groupName, rooms]) => (
+                <div key={groupName} className="my-2">
+                    <h3 className="my-2 text-sm text-foreground/50 font-medium">{groupName}</h3>
+                    <div className="grid gap-1">
+                        {rooms.map(room => (
+                            <RoomPanel key={room.id} room={room} isActive={room.id === activeRoomId} />
+                        ))}
+                    </div>
+                </div>
+            ))}
         </div>
+    )
+}
+
+function RoomPanel({
+    isActive,
+    room
+}: {
+    isActive: boolean,
+    room: Room
+}) {
+    const {activeServer} = useOutletContext<ServerLayoutContext>()
+
+    return (
+        <NavLink
+            to={`/server/${activeServer!.id}/${room.id}`}
+        >
+            <button
+                className={twJoin(' w-full px-2 py-1 text-sm flex items-center gap-1.5 rounded duration-200 text-foreground/70',
+                    isActive ? "bg-accent text-foreground/100" : "hover:bg-accent"
+                )}
+            >
+                <Hash className="size-4" />
+                <span className="capitalize">{room.name}</span>
+            </button>
+        </NavLink>
+
     )
 }
 

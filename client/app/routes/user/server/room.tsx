@@ -10,15 +10,22 @@ import type { MessageResponse } from "~/types/message"
 import type { User } from "~/types/user"
 import type { ServerLayoutContext } from "../layout"
 import type { Route } from "./+types/layout"
+import { useMessagesQuery } from "~/lib/queries/message"
 
-export default function RoomPage({ params: { serverId, roomId } }: Route.LoaderArgs) {
-    const { activeServer } = useOutletContext<ServerLayoutContext>()
+export default function RoomPage({ params: { roomId } }: Route.LoaderArgs) {
+    const { activeServer, rooms } = useOutletContext<ServerLayoutContext>()
+    const activeRoom = rooms?.find(room => room.id === roomId)
+    if (!activeRoom) return <div>Room not found</div>
 
-    const socketUrl = 'ws://localhost:8080/v1/room/' + roomId + "?jwt=" + localStorage.getItem("token")
+    const { data: messages, isSuccess } = useMessagesQuery(activeRoom.id)
+
+    if (!isSuccess) return <div>Server not found</div>
+
+    const socketUrl = 'ws://localhost:8080/v1/rooms/' + roomId + "?jwt=" + localStorage.getItem("token")
 
     const input = useRef<HTMLInputElement>(null);
 
-    const [messageHistory, setMessageHistory] = useState<MessageResponse[]>([]);
+    const [messageHistory, setMessageHistory] = useState<MessageResponse[]>(messages);
     const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl);
 
     useEffect(() => {
@@ -28,7 +35,7 @@ export default function RoomPage({ params: { serverId, roomId } }: Route.LoaderA
     function sendFormattedMessage() {
         const value = input.current?.value
         if (!value) return
-        sendMessage(JSON.stringify({ message: value } as MessageResponse))
+        sendMessage(JSON.stringify({ content: value } as MessageResponse))
         input.current!.value = ""
     }
 
@@ -37,7 +44,6 @@ export default function RoomPage({ params: { serverId, roomId } }: Route.LoaderA
     }
 
     /// mocks
-    const activeRoom = "welcome"
 
     const onlineUsers = ["User 1", "User 2", "User 3", "User 4", "User 5"]
 
@@ -48,7 +54,7 @@ export default function RoomPage({ params: { serverId, roomId } }: Route.LoaderA
                 <div className="h-12 flex items-center px-4">
                     <div className="flex items-center">
                         <Hash className="size-5 text-foreground/50 mr-1" />
-                        <h3 className="font-bold text-white capitalize">{activeRoom}</h3>
+                        <h3 className="font-bold text-white capitalize">{activeRoom?.name}</h3>
                     </div>
                     <div className="ml-auto flex items-center gap-4">
                         <Button variant="ghost" size="icon" className="size-8 rounded-full">
@@ -73,17 +79,17 @@ export default function RoomPage({ params: { serverId, roomId } }: Route.LoaderA
                             <div className="size-16 bg-foreground text-background rounded-full flex items-center justify-center mb-4">
                                 <Hash className="size-8" />
                             </div>
-                            <h2 className="text-2xl font-bold mb-1">Welcome to #{activeRoom}!</h2>
+                            <h2 className="text-2xl font-bold mb-1">Welcome to #{activeRoom?.name}!</h2>
                             <p className="text-foreground/50 max-w-md">
-                                This is the start of the #{activeRoom} Room in the {activeServer?.name} server.
+                                This is the start of the #{activeRoom?.name} Room in the {activeServer?.name} server.
                             </p>
                         </div>
 
                         {messageHistory.map((msg, i) => (
                             <ChatMesaage
-                                key={i + msg.message}
+                                key={i + msg.content}
                                 user={msg.author}
-                                message={msg.message}
+                                message={msg.content}
                                 date={new Date(msg.createdAt)}
                             />
                         ))}
@@ -99,7 +105,7 @@ export default function RoomPage({ params: { serverId, roomId } }: Route.LoaderA
                         <Input
                             ref={input}
                             onKeyDown={inputOnKeyDown}
-                            placeholder={`Message #${activeRoom}`}
+                            placeholder={`Message #${activeRoom.name}`}
                             className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
                         />
                     </div>

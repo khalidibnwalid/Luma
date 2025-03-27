@@ -1,25 +1,25 @@
 import { PlusIcon } from "lucide-react"
-import { useMemo } from "react"
 import { NavLink, Outlet } from "react-router"
 import { twJoin } from "tailwind-merge"
 import LayoutProviders from "~/components/providers/layout-providers"
 import { Button } from "~/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { useServersQuery } from "~/lib/queries/rooms-server"
+import type { Room } from "~/types/room"
 import type { RoomsServer } from "~/types/rooms-server"
 import type { Route } from "../../+types/root"
 
 export interface ServerLayoutContext {
     activeServer?: RoomsServer,
-    servers: RoomsServer[]
+    rooms?: Room[]
+    servers: RoomsServer[],
 }
 
 export default function Layout({ params }: Route.LoaderArgs) {
     const { data: servers, initCache, isSuccess } = useServersQuery()
     initCache()
 
-    const activeServer = useMemo(() => servers?.find((server) => server.id === params.serverId),
-        [params.serverId, JSON.stringify(servers)])
+    const activeServer = servers?.find((server) => server.id === params.serverId)
 
     if (!isSuccess) return <div>Loading...</div> // temporary
 

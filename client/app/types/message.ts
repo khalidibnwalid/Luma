@@ -4,7 +4,7 @@ export interface Message {
     id: string
     authorId: string
     roomId: string
-    message: string
+    content: string
     createdAt: number
     updatedAt: number
 }
