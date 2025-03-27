@@ -2,11 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/khalidibnwalid/Luma/middlewares"
 	"github.com/khalidibnwalid/Luma/models"
-	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func (ctx *HandlerContext) validateRoomsServerID(w http.ResponseWriter, r *http.Request) (models.RoomsServer, error) {
@@ -40,10 +40,11 @@ func (ctx *HandlerContext) GetRoomsServer(w http.ResponseWriter, r *http.Request
 // get all servers of a user
 func (ctx *HandlerContext) GetUserRoomsServer(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(middlewares.CtxUserIDKey).(string)
-	objUserId, _ := bson.ObjectIDFromHex(userID)
 
-	servers, err := models.GetRoomsServersByOwner(ctx.Db, objUserId)
+	// temp to get all owned servers, will be changed to get all servers of a user
+	servers, err := models.NewRoomsServer().WithOwnerID(userID).GetAllServersOfOwner(ctx.Db)
 	if err != nil {
+		log.Print(err)
 		http.Error(w, "Error getting servers", http.StatusInternalServerError)
 		return
 	}
@@ -62,19 +63,14 @@ func (ctx *HandlerContext) PostRoomsServer(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	if t.Name == "" {
-		http.Error(w, "Name is required", http.StatusBadRequest)
+		http.Error(w, "'name' is required", http.StatusBadRequest)
 		return
 	}
 
-	name := t.Name
-
 	userID := r.Context().Value(middlewares.CtxUserIDKey).(string)
-	objUserId, _ := bson.ObjectIDFromHex(userID)
 
-	server := models.RoomsServer{
-		OwnerID: objUserId,
-		Name:    name,
-	}
+	server := models.NewRoomsServer().WithOwnerID(userID)
+	server.Name = t.Name
 
 	if err := server.Create(ctx.Db); err != nil {
 		http.Error(w, "Error creating server", http.StatusInternalServerError)
@@ -92,7 +88,7 @@ func (ctx *HandlerContext) GetRoomsOfServer(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	rooms, err := models.GetRoomsOfServer(ctx.Db, server.ID.Hex())
+	rooms, err := server.GetRooms(ctx.Db)
 	if err != nil {
 		http.Error(w, "Error getting rooms", http.StatusInternalServerError)
 		return
@@ -120,19 +116,19 @@ func (ctx *HandlerContext) PostRoomToServer(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	if t.Type == "" {
-		http.Error(w, "Type is required", http.StatusBadRequest)
+		http.Error(w, "'type' is required", http.StatusBadRequest)
 		return
 	}
 
 	if t.Name == "" {
-		http.Error(w, "Name is required", http.StatusBadRequest)
+		http.Error(w, "'name' is required", http.StatusBadRequest)
 		return
 	}
 
 	room := models.Room{
-		ServerID: server.ID,
-		Type:     t.Type,
-		Name:     t.Name,
+		ServerID:  server.ID,
+		Type:      t.Type,
+		Name:      t.Name,
 		GroupName: t.GroupName,
 	}
 

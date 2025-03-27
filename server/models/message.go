@@ -6,16 +6,36 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 type Message struct {
 	ID        bson.ObjectID `bson:"_id" json:"id"`
 	AuthorID  string        `bson:"author_id" json:"authorId"`
 	RoomID    string        `bson:"room_id" json:"roomId"`
-	Message   string        `bson:"message" json:"message"`
+	Content   string        `bson:"content" json:"content"`
 	CreatedAt int64         `bson:"created_at" json:"createdAt"`
 	UpdatedAt int64         `bson:"updated_at" json:"updatedAt"`
+	// Author shouldn't be stored in the database, only AuthorID
+	Author User `bson:"author" json:"author"`
+}
+
+func NewMessage() *Message {
+	return &Message{}
+}
+
+func (msg *Message) WithMessage(message string) *Message {
+	msg.Content = message
+	return msg
+}
+
+func (msg *Message) WithAuthorID(authorID string) *Message {
+	msg.AuthorID = authorID
+	return msg
+}
+
+func (msg *Message) WithRoomID(roomID string) *Message {
+	msg.RoomID = roomID
+	return msg
 }
 
 func (msg *Message) Create(db *mongo.Database) error {
@@ -29,28 +49,6 @@ func (msg *Message) Create(db *mongo.Database) error {
 	}
 
 	return nil
-}
-
-// default limit is 50
-func (msg *Message) GetAllMessages(db *mongo.Database, room_id string, limit ...int64) ([]Message, error) {
-	coll := db.Collection("messages")
-	limitVal := int64(50)
-	if len(limit) > 0 {
-		limitVal = limit[0]
-	}
-	opts := options.Find().SetLimit(limitVal)
-
-	cursor, err := coll.Find(context.TODO(), bson.M{"room_id": room_id}, opts)
-	if err != nil {
-		return nil, err
-	}
-
-	var messages []Message
-	if err := cursor.All(context.Background(), &messages); err != nil {
-		return nil, err
-	}
-
-	return messages, nil
 }
 
 func (msg *Message) Update(db *mongo.Database) error {

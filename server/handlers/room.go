@@ -19,12 +19,6 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-type msgRes struct {
-	models.Message
-	AuthorID string      `json:"-"`
-	Author   models.User `json:"author"`
-}
-
 func (ctx *HandlerContext) validateRoomID(w http.ResponseWriter, r *http.Request) (models.Room, error) {
 	roomID := r.PathValue("id")
 	if roomID == "" {
@@ -41,7 +35,7 @@ func (ctx *HandlerContext) validateRoomID(w http.ResponseWriter, r *http.Request
 	return roomData, nil
 }
 
-func (ctx *HandlerContext) RoomWS(store *core.TopicStore) http.HandlerFunc {
+func (ctx *HandlerContext) WSRoom(store *core.TopicStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		room, err := ctx.validateRoomID(w, r)
 		if err != nil {
@@ -55,46 +49,50 @@ func (ctx *HandlerContext) RoomWS(store *core.TopicStore) http.HandlerFunc {
 		}
 		defer conn.Close()
 
-		log.Printf("Room [%s] Connected\n", room.ID.String())
-		roomTopic := store.GetOrCreateRoom(room.ID.String())
+		log.Printf("Room [%s] Connected\n", room.ID.Hex())
+		roomTopic := store.GetOrCreateRoom(room.ID.Hex())
 		roomTopic.Subscribe(conn)
 		defer roomTopic.Unsubscribe(conn)
 
 		userId := r.Context().Value(middlewares.CtxUserIDKey).(string)
-		userData := models.User{}
-		userData.FindByID(ctx.Db, userId)
+		user := models.NewUser().WithHexID(userId)
+		user.FindByID(ctx.Db) // not finding the user
+		
 
 		for {
-			var msg msgRes // only includes the msg
+			var body struct {
+				Content string `json:"content"`
+			}
 
 			// needs a validator
-			err := conn.ReadJSON(&msg)
+			err := conn.ReadJSON(&body)
 			if err != nil {
 				log.Println("Read error:", err)
 				roomTopic.Unsubscribe(conn)
 				break
 			}
 
-			msg.RoomID = room.ID.String()
-			msg.AuthorID = userId
+			var msg models.Message
+			msg.Content = body.Content
+			msg.RoomID = room.ID.Hex()
+			msg.AuthorID = user.ID.Hex()
 			msg.Create(ctx.Db)
-			msg.Author = userData
+
+			msg.Author = *user
 
 			json, _ := json.Marshal(msg)
-
 			roomTopic.Publish([]byte(json))
 		}
 	}
 }
 
-func (ctx *HandlerContext) RoomMessagesGET(w http.ResponseWriter, r *http.Request) {
+func (ctx *HandlerContext) GETRoomMessages(w http.ResponseWriter, r *http.Request) {
 	room, err := ctx.validateRoomID(w, r)
 	if err != nil {
 		return
 	}
 
-	msg := models.Message{}
-	messages, err := msg.GetAllMessages(ctx.Db, room.ID.String(), 50)
+	messages, err := room.GetMessages(ctx.Db)
 	if err != nil {
 		http.Error(w, "Error fetching messages", http.StatusInternalServerError)
 		return

@@ -37,8 +37,8 @@ func main() {
 	authedRoutes.HandleFunc("POST /server/{id}/rooms", ctx.PostRoomToServer)
 
 	// room routes
-	authedRoutes.HandleFunc("GET /room/{id}/messages", ctx.RoomMessagesGET)
-	authedRoutes.HandleFunc("/room/{id}", ctx.RoomWS(topicStore))
+	authedRoutes.HandleFunc("GET /room/{id}/messages", ctx.GETRoomMessages)
+	authedRoutes.HandleFunc("/room/{id}", ctx.WSRoom(topicStore))
 
 	unAuthedRoutes := core.NewApp()
 	unAuthedRoutes.Use(middlewares.Logging)

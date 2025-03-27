@@ -9,8 +9,8 @@ import (
 )
 
 func (s *HandlerContext) UserGET(w http.ResponseWriter, req *http.Request) {
-	user := models.User{}
-	if err := user.FindByUsername(s.Db, req.PathValue("username")); err != nil {
+	user := models.NewUser().WithUsername(req.PathValue("username"))
+	if err := user.FindByUsername(s.Db); err != nil {
 		if err == mongo.ErrNoDocuments {
 			http.Error(w, "Not Found", http.StatusNotFound)
 			return
@@ -28,5 +28,4 @@ func (s *HandlerContext) UserGET(w http.ResponseWriter, req *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(jsonUser)
-	w.WriteHeader(http.StatusOK)
 }

@@ -12,44 +12,89 @@ const ServerCollection = "rooms_server"
 
 type RoomsServer struct {
 	ID        bson.ObjectID `bson:"_id" json:"id"`
-	OwnerID   bson.ObjectID `bson:"owner_id" json:"ownerId"`
+	OwnerID   string        `bson:"owner_id" json:"ownerId"`
 	Name      string        `bson:"name" json:"name"`
 	CreatedAt int64         `bson:"created_at" json:"createdAt"`
 	UpdatedAt int64         `bson:"updated_at" json:"updatedAt"`
 }
 
-func (r *RoomsServer) Create(db *mongo.Database) error {
-	r.ID = bson.NewObjectID()
-	r.CreatedAt = time.Now().Unix()
-	r.UpdatedAt = time.Now().Unix()
+func NewRoomsServer(rs ...RoomsServer) *RoomsServer {
+	if len(rs) > 0 {
+		return &rs[0]
+	}
+	return &RoomsServer{}
+}
+
+func (rs *RoomsServer) WithHexID(id string) *RoomsServer {
+	objId, _ := bson.ObjectIDFromHex(id)
+	rs.ID = objId
+	return rs
+}
+
+func (rs *RoomsServer) WithObjID(id bson.ObjectID) *RoomsServer {
+	rs.ID = id
+	return rs
+}
+
+// The ID should in HEX format like "xxxxxxxxxxxxxxxxxxxxxxxx" not ObjectID("xxxxxxxxxxxxxxxxxxxxxxxx")
+func (rs *RoomsServer) WithOwnerID(ownerID string) *RoomsServer {
+	rs.OwnerID = ownerID
+	return rs
+}
+
+func (rs *RoomsServer) Create(db *mongo.Database) error {
+	rs.ID = bson.NewObjectID()
+	rs.CreatedAt = time.Now().Unix()
+	rs.UpdatedAt = time.Now().Unix()
 
 	coll := db.Collection(ServerCollection)
-	if _, err := coll.InsertOne(context.TODO(), r); err != nil {
+	if _, err := coll.InsertOne(context.TODO(), rs); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (r *RoomsServer) FindById(db *mongo.Database, id string) error {
+// You can provide the ID as a parameter or use the ID from the struct
+func (rs *RoomsServer) FindById(db *mongo.Database, id ...string) error {
 	coll := db.Collection(ServerCollection)
 
-	objId, err := bson.ObjectIDFromHex(id)
-	if err != nil {
-		return err
+	var (
+		objId bson.ObjectID
+		err   error
+	)
+	if len(id) > 0 {
+		if objId, err = bson.ObjectIDFromHex(id[0]); err != nil {
+			return err
+		}
+	} else {
+		objId = rs.ID
 	}
 
-	if err := coll.FindOne(context.TODO(), bson.M{"_id": objId}).Decode(&r); err != nil {
+	if err := coll.FindOne(context.TODO(), bson.M{"_id": objId}).Decode(&rs); err != nil {
 		return err
 	}
 	return nil
 }
 
-func GetRoomsServersByOwner(db *mongo.Database, ownerID bson.ObjectID) ([]RoomsServer, error) {
+// You can provide the OwenrID as a parameter or use the ID from the struct
+func (rs *RoomsServer) GetAllServersOfOwner(db *mongo.Database, ownerID ...string) ([]RoomsServer, error) {
 	coll := db.Collection(ServerCollection)
 
-	cursor, err := coll.Find(context.TODO(), bson.M{"owner_id": ownerID})
-	if err != nil {
+	var (
+		OwenrID string
+		err     error
+		cursor  *mongo.Cursor
+	)
+
+	// we need the ID as a hex string
+	if len(ownerID) > 0 {
+		OwenrID = ownerID[0]
+	} else {
+		OwenrID = rs.ID.Hex()
+	}
+
+	if cursor, err = coll.Find(context.TODO(), bson.M{"owner_id": OwenrID}); err != nil {
 		return nil, err
 	}
 
@@ -61,12 +106,20 @@ func GetRoomsServersByOwner(db *mongo.Database, ownerID bson.ObjectID) ([]RoomsS
 	return servers, nil
 }
 
-func GetRoomsOfServer(db *mongo.Database, serverID string) ([]Room, error) {
+// You can provide the ServerId as a parameter or use the ID from the struct
+func (rs *RoomsServer) GetRooms(db *mongo.Database, serverID ...string) ([]Room, error) {
 	coll := db.Collection("rooms")
 
-	objId, err := bson.ObjectIDFromHex(serverID)
-	if err != nil {
-		return nil, err
+	var (
+		objId bson.ObjectID
+		err   error
+	)
+	if len(serverID) > 0 {
+		if objId, err = bson.ObjectIDFromHex(serverID[0]); err != nil {
+			return nil, err
+		}
+	} else {
+		objId = rs.ID
 	}
 
 	cursor, err := coll.Find(context.TODO(), bson.M{"server_id": objId})
@@ -83,18 +136,18 @@ func GetRoomsOfServer(db *mongo.Database, serverID string) ([]Room, error) {
 	return rooms, nil
 }
 
-func (r *RoomsServer) Update(db *mongo.Database) error {
-	r.UpdatedAt = time.Now().Unix()
+func (rs *RoomsServer) Update(db *mongo.Database) error {
+	rs.UpdatedAt = time.Now().Unix()
 	coll := db.Collection(ServerCollection)
-	if _, err := coll.UpdateOne(context.TODO(), bson.M{"_id": r.ID}, bson.M{"$set": r}); err != nil {
+	if _, err := coll.UpdateOne(context.TODO(), bson.M{"_id": rs.ID}, bson.M{"$set": rs}); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *RoomsServer) Delete(db *mongo.Database) error {
+func (rs *RoomsServer) Delete(db *mongo.Database) error {
 	coll := db.Collection(ServerCollection)
-	if _, err := coll.DeleteOne(context.TODO(), bson.M{"_id": r.ID}); err != nil {
+	if _, err := coll.DeleteOne(context.TODO(), bson.M{"_id": rs.ID}); err != nil {
 		return err
 	}
 	return nil

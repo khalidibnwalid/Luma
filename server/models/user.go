@@ -12,8 +12,34 @@ type User struct {
 	ID             bson.ObjectID `bson:"_id" json:"id"`
 	Username       string        `bson:"username" json:"username"`
 	HashedPassword string        `bson:"hashed_password" json:"-"`
-	CreatedAt      int64         `bson:"createdAt" json:"createdAt"`
-	UpdatedAt      int64         `bson:"updatedAt" json:"updatedAt"`
+	CreatedAt      int64         `bson:"created_at" json:"createdAt"`
+	UpdatedAt      int64         `bson:"updated_at" json:"updatedAt"`
+}
+
+func NewUser(username ...string) *User {
+	if len(username) == 0 {
+		return &User{}
+	}
+
+	return &User{
+		Username: username[0],
+	}
+}
+
+func (u *User) WithHexID(id string) *User {
+	objID, _ := bson.ObjectIDFromHex(id)
+	u.ID = objID
+	return u
+}
+
+func (u *User) WithObjID(id bson.ObjectID) *User {
+	u.ID = id
+	return u
+}
+
+func (u *User) WithUsername(username string) *User {
+	u.Username = username
+	return u
 }
 
 func (u *User) Create(db *mongo.Database) error {
@@ -29,24 +55,43 @@ func (u *User) Create(db *mongo.Database) error {
 	return nil
 }
 
-func (u *User) FindByUsername(db *mongo.Database, username string) error {
+// You can provide ID as a parameter or in the struct
+func (u *User) FindByUsername(db *mongo.Database, username ...string) error {
 	coll := db.Collection("users")
-	if err := coll.FindOne(context.TODO(), bson.M{"username": username}).Decode(&u); err != nil {
+	var _username string
+
+	if len(username) > 0 {
+		_username = username[0]
+	} else {
+		_username = u.Username
+	}
+
+	if err := coll.FindOne(context.TODO(), bson.M{"username": _username}).Decode(&u); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (u *User) FindByID(db *mongo.Database, id string) error {
+func (u *User) FindByID(db *mongo.Database, id ...string) error {
 	coll := db.Collection("users")
-	objId, err := bson.ObjectIDFromHex(id)
-	if err != nil {
-		return err
+
+	var (
+		objId bson.ObjectID
+		err   error
+	)
+
+	if len(id) > 0 {
+		if objId, err = bson.ObjectIDFromHex(id[0]); err != nil {
+			return err
+		}
+	} else {
+		objId = u.ID
 	}
 
 	if err := coll.FindOne(context.TODO(), bson.M{"_id": objId}).Decode(&u); err != nil {
 		return err
 	}
+
 	return nil
 }
 
