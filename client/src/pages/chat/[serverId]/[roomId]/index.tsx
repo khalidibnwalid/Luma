@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
+import { useIntersectionObserver } from "@/lib/hooks/useIntersectionObserver"
 import { useMessagesQuery } from "@/lib/queries/message"
 import type { MessageResponse } from "@/types/message"
 import type { User } from "@/types/user"
@@ -19,14 +20,25 @@ export default function Page() {
     const activeRoom = rooms?.find(room => room.id === roomId)
 
     const { data: messages, isSuccess } = useMessagesQuery(roomId)
-
     const socketUrl = 'ws://localhost:8080/v1/rooms/' + roomId + "?jwt=" + localStorage.getItem("token")
     const { sendMessage, lastMessage } = useWebSocket(socketUrl);
 
+    const input = useRef<HTMLInputElement>(null);
     const [newMessageHistory, setMessageHistory] = useState<MessageResponse[]>([]);
     const allMessages = [...(messages ?? []), ...newMessageHistory.filter(msg => msg.roomId === roomId)]
 
-    const input = useRef<HTMLInputElement>(null);
+    const {
+        isIntersecting: isSnappedToBottom,
+        ref: endOfScroll,
+        setRef: bindEndOfScroll
+    } = useIntersectionObserver({ threshold: 1 })
+
+    useEffect(() => {
+        if (endOfScroll && isSnappedToBottom) {
+            endOfScroll.scrollIntoView({ behavior: "smooth" })
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [newMessageHistory, messages])
 
     useEffect(() => {
         if (lastMessage !== null) setMessageHistory((prev) => prev.concat(JSON.parse(lastMessage.data)));
@@ -56,7 +68,7 @@ export default function Page() {
                 <div className="h-12 flex items-center px-4">
                     <div className="flex items-center">
                         <Hash className="size-5 text-foreground/50 mr-1" />
-                        <h3 className="font-bold text-white capitalize">{activeRoom?.name}</h3>
+                        <h3 className="font-bold text-foreground capitalize">{activeRoom?.name}</h3>
                     </div>
                     <div className="ml-auto flex items-center gap-4">
                         <Button variant="ghost" size="icon" className="size-8 rounded-full">
@@ -69,14 +81,14 @@ export default function Page() {
                             <Search className="size-5 text-foreground/50 absolute left-2 top-1/2 transform -translate-y-1/2" />
                             <Input
                                 placeholder="Search"
-                                className="pl-9 h-8 bg-zinc-900 border-zinc-700 w-40 focus:w-60 transition-all duration-300"
+                                className="pl-9 h-8 bg-foreground/30 border-foreground/20 w-40 focus:w-60 transition-all duration-300"
                             />
                         </div>
                     </div>
                 </div>
 
                 <ScrollArea className="flex-1 p-4 overflow-y-auto">
-                    <div  className="grid gap-y-3">
+                    <div className="grid gap-y-3">
                         <div className="flex flex-col items-center justify-center text-center p-8">
                             <div className="size-16 bg-foreground text-background rounded-full flex items-center justify-center mb-4">
                                 <Hash className="size-8" />
@@ -92,10 +104,11 @@ export default function Page() {
                                 key={i + msg.content}
                                 user={msg.author}
                                 message={msg.content}
-                                date={new Date(msg.createdAt)}
+                                date={msg.createdAt}
                             />
                         ))}
 
+                        <div ref={bindEndOfScroll}></div>
                     </div>
                     <ScrollBar />
                 </ScrollArea>
@@ -140,17 +153,16 @@ export default function Page() {
     )
 }
 
-interface Message {
-    user: User,
-    message: string,
-    date: Date
-}
-
 function ChatMesaage({
     user,
     message,
-    date
-}: Message) {
+    date: unixEpochInSec
+}: {
+    user: User,
+    message: string,
+    date: number
+}) {
+    const date = new Date(unixEpochInSec * 1000)
     return (
         <article className="flex gap-3 group hover:bg-foreground/5 p-2 rounded-lg duration-200">
             <Avatar className="size-10 mt-0.5">
@@ -173,7 +185,7 @@ function ChatMesaage({
                         <TrashIcon className=" text-foreground/50 " size={12} />
                     </button>
                 </div>
-                <p className="text-zinc-300">
+                <p className="text-foreground/85">
                     {message}
                 </p>
             </div>
