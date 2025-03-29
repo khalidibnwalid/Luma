@@ -13,17 +13,20 @@ type key string
 
 const CtxUserIDKey key = "auth.JWT_USER_ID"
 
+// TODO token refreshing
 func JwtAuthBuilder(secret string) core.Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			tokenString := r.Header.Get("Authorization")
-			tokenString = strings.Replace(tokenString, "Bearer ", "", 1)
+			cookie, err := r.Cookie(core.JwtSessionCookieName)
+			if err != nil {
+				unahuthorized(w)
+				return
+			}
+
+			tokenString := strings.Replace(cookie.Value, "Bearer ", "", 1)
 			if tokenString == "" {
-				tokenString = r.URL.Query().Get("jwt")
-				if tokenString == "" {
-					unahuthorized(w)
-					return
-				}
+				unahuthorized(w)
+				return
 			}
 
 			_, claims, ok := core.ValidateJwtToken(secret, tokenString)

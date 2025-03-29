@@ -7,13 +7,14 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-const jwtTimeToLive = 10 * 24 * time.Hour
+const JwtTimeToLive = 10 * 24 * time.Hour
+const JwtSessionCookieName = "Authorization"
 
 func GenerateJwtToken(secret, userId string) (string, error) {
 	headerAndPayload := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"sub": userId,
 		"iat": time.Now().Unix(),
-		"exp": time.Now().Add(jwtTimeToLive).Unix(),
+		"exp": time.Now().Add(JwtTimeToLive).Unix(),
 	})
 
 	jwtToken, err := headerAndPayload.SignedString([]byte(secret))
@@ -42,4 +43,14 @@ func ValidateJwtToken(secret, tokenString string) (*jwt.Token, jwt.MapClaims, bo
 	}
 
 	return token, claims, true
+}
+
+func SerializeCookieWithToken(token string, secure ...bool) string {
+	formatedExpire := time.Now().Add(JwtTimeToLive).Format(time.RFC1123Z)
+
+	cookie := fmt.Sprintf("%s=Bearer %s; SameSite=Lax; Expires=%s; Path=/; HttpOnly;", JwtSessionCookieName, token, formatedExpire)
+	if len(secure) > 0 && secure[0] {
+		return cookie + " Secure;"
+	}
+	return cookie
 }

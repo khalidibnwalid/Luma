@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/khalidibnwalid/Luma/core"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
@@ -39,6 +40,13 @@ func (u *User) WithObjID(id bson.ObjectID) *User {
 
 func (u *User) WithUsername(username string) *User {
 	u.Username = username
+	return u
+}
+
+// Automatically hashes the password
+func (u *User) WithPassword(unhashedPassword string) *User {
+	hashedPassword, salt, _ := core.CreateHashWithSalt(unhashedPassword)
+	u.HashedPassword = core.SerializeHashWithSalt(hashedPassword, salt)
 	return u
 }
 

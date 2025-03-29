@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/khalidibnwalid/Luma/core"
@@ -9,8 +10,8 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
-// Signup Handler / Create a new user
-func (s *HandlerContext) PostUser(w http.ResponseWriter, r *http.Request) {
+// LoginHandler
+func (ctx *HandlerContext) PostSession(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
@@ -26,38 +27,33 @@ func (s *HandlerContext) PostUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: needs a validator for username and password
 	user := models.NewUser().WithUsername(req.Username)
-
-	var err error
-	// user exists? if so it won't return an error
-	// if it does return an error of mongo.ErrNoDocuments, we assume that the user doesn't exist
-	if err = user.FindByUsername(s.Db); err == nil {
-		http.Error(w, "User already exists", http.StatusConflict)
-		return
-	}
-
-	// if not a 'Not Found' error, then it is a real error
-	if err != mongo.ErrNoDocuments {
+	// check if the user exists
+	if err := user.FindByUsername(ctx.Db); err != nil {
+		if err == mongo.ErrNoDocuments {
+			http.Error(w, "Not Found", http.StatusNotFound)
+			return
+		}
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	user.WithPassword(req.Password)
-	if err := user.Create(s.Db); err != nil {
+	// check if the password is correct
+	if err := core.VerifyHashWithSalt(req.Password, user.HashedPassword); err != nil {
+		if err == core.ErrHashVerificationFailed {
+			http.Error(w, "Invalid password", http.StatusUnauthorized)
+			return
+		}
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	// create a token for the user
-	token, err := core.GenerateJwtToken(s.JwtSecret, user.ID.Hex())
+	token, err := core.GenerateJwtToken(ctx.JwtSecret, user.ID.Hex())
 	if err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
+		fmt.Println(err)
 	}
 
 	json, _ := json.Marshal(user)
-
 	w.Header().Add("Set-Cookie", core.SerializeCookieWithToken(token))
 	w.WriteHeader(http.StatusCreated)
 	w.Header().Set("Content-Type", "application/json")

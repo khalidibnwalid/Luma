@@ -26,7 +26,7 @@ func main() {
 	authedRoutes.Use(middlewares.JwtAuthBuilder(env.JwtSecret))
 
 	// user data routes
-	authedRoutes.HandleFunc("GET /user/{username}", ctx.UserGET)
+	// authedRoutes.HandleFunc("GET /user/{username}", ctx.UserGET)
 
 	// servers routes
 	authedRoutes.HandleFunc("GET /servers", ctx.GetUserRoomsServer)
@@ -40,9 +40,11 @@ func main() {
 	authedRoutes.HandleFunc("GET /rooms/{id}/messages", ctx.GETRoomMessages)
 	authedRoutes.HandleFunc("/rooms/{id}", ctx.WSRoom(topicStore))
 
+	// auth routes
 	unAuthedRoutes := core.NewApp()
 	unAuthedRoutes.Use(middlewares.Logging)
-	unAuthedRoutes.HandleFunc("POST /login", ctx.AuthLogin)
+	unAuthedRoutes.HandleFunc("POST /sessions", ctx.PostSession)
+	unAuthedRoutes.HandleFunc("POST /users", ctx.PostUser)
 
 	v1 := http.NewServeMux()
 	v1.Handle("/v1/", http.StripPrefix("/v1", authedRoutes.Mux))
