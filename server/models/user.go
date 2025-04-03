@@ -12,6 +12,7 @@ import (
 type User struct {
 	ID             bson.ObjectID `bson:"_id" json:"id"`
 	Username       string        `bson:"username" json:"username"`
+	Email          string        `bson:"email" json:"email"`
 	HashedPassword string        `bson:"hashed_password" json:"-"`
 	CreatedAt      int64         `bson:"created_at" json:"createdAt"`
 	UpdatedAt      int64         `bson:"updated_at" json:"updatedAt"`
@@ -40,6 +41,11 @@ func (u *User) WithObjID(id bson.ObjectID) *User {
 
 func (u *User) WithUsername(username string) *User {
 	u.Username = username
+	return u
+}
+
+func (u *User) WithEmail(email string) *User {
+	u.Email = email
 	return u
 }
 
@@ -75,6 +81,23 @@ func (u *User) FindByUsername(db *mongo.Database, username ...string) error {
 	}
 
 	if err := coll.FindOne(context.TODO(), bson.M{"username": _username}).Decode(&u); err != nil {
+		return err
+	}
+	return nil
+}
+
+// You can provide Email as a parameter or in the struct
+func (u *User) FindByEmail(db *mongo.Database, email ...string) error {
+	coll := db.Collection("users")
+	var _email string
+
+	if len(email) > 0 {
+		_email = email[0]
+	} else {
+		_email = u.Email
+	}
+
+	if err := coll.FindOne(context.TODO(), bson.M{"email": _email}).Decode(&u); err != nil {
 		return err
 	}
 	return nil

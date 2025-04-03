@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
+	"errors"
 	"net/http"
 
 	"github.com/khalidibnwalid/Luma/middlewares"
@@ -19,7 +19,7 @@ func (ctx *HandlerContext) validateRoomsServerID(w http.ResponseWriter, r *http.
 	serverData := models.RoomsServer{}
 	if err := serverData.FindById(ctx.Db, serverID); err != nil {
 		http.Error(w, "Server not found", http.StatusNotFound)
-		return models.RoomsServer{}, nil
+		return models.RoomsServer{}, errors.New("Server not found")
 	}
 
 	return serverData, nil
@@ -44,7 +44,6 @@ func (ctx *HandlerContext) GetUserRoomsServer(w http.ResponseWriter, r *http.Req
 	// temp to get all owned servers, will be changed to get all servers of a user
 	servers, err := models.NewRoomsServer().WithOwnerID(userID).GetAllServersOfOwner(ctx.Db)
 	if err != nil {
-		log.Print(err)
 		http.Error(w, "Error getting servers", http.StatusInternalServerError)
 		return
 	}
