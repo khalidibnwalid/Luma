@@ -1,14 +1,48 @@
+import { queryClient } from "@/components/providers/layout-providers";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import Spinner from "@/components/ui/spinner";
+import http from "@/lib/http";
+import { AuthError, AuthErrorMessages } from "@/types/errors";
+import { useMutation } from "@tanstack/react-query";
 import { Eye, EyeOff } from "lucide-react";
 import Head from "next/head";
+import Link from "next/link";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
 
-export default function SignupPage() {
+interface Form {
+    username: string;
+    password: string;
+}
+
+const LOGIN_URL = "http://localhost:8080/v1/auth/sessions"
+
+export default function LoginPage() {
+    const { register, handleSubmit } = useForm<Form>()
+    const [error, setError] = useState<string | null>(null)
     const [showPassword, setShowPassword] = useState(false);
+
+    const mutation = useMutation({
+        mutationKey: ["user"],
+        mutationFn: async ({ username, password }: Form) =>
+            await http(LOGIN_URL).post({
+                username,
+                password,
+            }),
+        // onSuccess: (data) => {
+        //     // TODO user provider
+        // },
+        onError: (error: Error) =>
+            setError(AuthErrorMessages[error.message as AuthError]),
+    }, queryClient)
+
+    async function onSubmit({ username, password }: Form) {
+        mutation.mutate({ username: username.trim(), password })
+    }
 
     return (
         <main className="min-h-screen flex items-center justify-center ">
@@ -29,7 +63,8 @@ export default function SignupPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <form className="grid gap-4">
+                        <form className="grid gap-4" onSubmit={handleSubmit(onSubmit)}>
+                            <Spinner />
                             <Button
                                 type="button"
                                 variant="outline"
@@ -70,13 +105,20 @@ export default function SignupPage() {
                             </Button>
                             <Separator orientation="horizontal" />
                             <div className="grid gap-3 py-2">
-                                <Label htmlFor="email">Email</Label>
+                                <Label htmlFor="username">Username or Email</Label>
                                 <Input
-                                    id="email"
-                                    type="email"
-                                    autoComplete="email"
-                                    placeholder="email@example.com"
+                                    id="username"
+                                    type="text"
+                                    autoComplete="username"
+                                    placeholder="Username or Email"
                                     required
+                                    {...register("username", {
+                                        required: true,
+                                        minLength: {
+                                            value: 3,
+                                            message: "Must be at least 3 characters",
+                                        },
+                                    })}
                                 />
                                 <Label htmlFor="password">Password</Label>
 
@@ -89,6 +131,13 @@ export default function SignupPage() {
                                         autoComplete="new-password"
                                         minLength={8}
                                         required
+                                        {...register("password", {
+                                            required: true,
+                                            minLength: {
+                                                value: 8,
+                                                message: "Password must be at least 8 characters",
+                                            },
+                                        })}
                                     />
                                     <Button
                                         type="button"
@@ -105,12 +154,17 @@ export default function SignupPage() {
                                     </Button>
                                 </div>
                             </div>
+                            {error && <p className="text-destructive text-sm text-center">{error}</p>}
                             <Button
                                 type="submit"
                                 className="group w-full"
                             >
                                 Continue
                             </Button>
+
+                            <span className="text-sm text-muted-foreground text-center">
+                                Don&apos;t have an account? <Link href="/signup" className="text-primary">Signup Here!</Link>
+                            </span>
                         </form>
                     </CardContent>
                 </Card>

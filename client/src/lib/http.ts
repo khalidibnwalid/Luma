@@ -6,8 +6,6 @@ enum METHOD {
     DELETE = 'DELETE'
 }
 
-const JWT_LOCAL_STORAGE_KEY = 'token'
-
 export default function http(url: string) {
     const isFormData = (body: unknown) => body instanceof FormData
     const get = async <T>() => (await fetchWrapper(url)).json() as T
@@ -17,14 +15,13 @@ export default function http(url: string) {
     const del = async <T>(body?: unknown) => (await apiFactory(METHOD.DELETE)(body)).json() as T
 
     function apiFactory(method: METHOD) {
-        return (body?: unknown) =>
-        (fetchWrapper(url, {
+        return (body?: unknown) => fetchWrapper(url, {
             method,
             headers: {
                 'Content-Type': isFormData(body) ? 'multipart/form-data' : 'application/json'
             },
             body: isFormData(body) ? body : JSON.stringify(body)
-        }))
+        })
     }
 
     return {
@@ -37,22 +34,15 @@ export default function http(url: string) {
 }
 
 async function fetchWrapper(url: string, requestInit?: RequestInit) {
-    try {
-        const res = await fetch(url, {
-            credentials: 'include',
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem(JWT_LOCAL_STORAGE_KEY)}`,
-            },
-            ...requestInit
-        })
-        const clone = res.clone() // Clone the response to check for errors, since res.json() consumes it
-        const jsonRes = await res.json();
+    const res = await fetch(url, {
+        credentials: 'include',
+        ...requestInit
+    })
+    const clone = res.clone() // Clone the response to check for errors, since res.json() consumes it
+    const jsonRes = await res.json();
 
-        if (!res.ok)
-            throw new Error(jsonRes.message)
+    if (!res.ok)
+        throw new Error(jsonRes.error)
 
-        return clone
-    } catch (e) {
-        throw new Error((e as Error).message)
-    }
+    return clone
 }
