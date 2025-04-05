@@ -6,9 +6,31 @@ import (
 	"net/http"
 
 	"github.com/khalidibnwalid/Luma/core"
+	"github.com/khalidibnwalid/Luma/middlewares"
 	"github.com/khalidibnwalid/Luma/models"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
+
+func (s *HandlerContext) GetUser(w http.ResponseWriter, r *http.Request) {
+	user := models.NewUser()
+	userID := r.Context().Value(middlewares.CtxUserIDKey).(string)
+	user.WithHexID(userID)
+
+	if err := user.FindByID(s.Db); err != nil {
+		if err == mongo.ErrNoDocuments {
+			// unlikely to happen, but just in case a user delete their account and use their token again
+			newErrorResponse(w, http.StatusNotFound, enumUserDoesNotExist)
+			return
+		}
+		newErrorResponse(w, http.StatusInternalServerError, enumInternalServerError)
+		return
+	}
+
+	json, _ := json.Marshal(user)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(json)
+}
 
 // TODO add a validator
 // Signup Handler / Create a new user

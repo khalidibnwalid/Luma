@@ -40,6 +40,9 @@ func main() {
 	authedRoutes.HandleFunc("GET /rooms/{id}/messages", ctx.GETRoomMessages)
 	authedRoutes.HandleFunc("/rooms/{id}", ctx.WSRoom(topicStore))
 
+	// user routes
+	authedRoutes.HandleFunc("GET /users", ctx.GetUser)
+
 	// auth routes
 	unAuthedRoutes := core.NewApp()
 	unAuthedRoutes.Use(middlewares.Logging)
