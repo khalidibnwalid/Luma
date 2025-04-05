@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import React from "react";
+import AuthProvider from './auth-provider';
 
 export const queryClient = new QueryClient()
 
@@ -21,14 +22,16 @@ export default function LayoutProviders({ children }: { children: React.ReactNod
     }, [])
 
     return (
-        <QueryClientProvider client={queryClient}>
-            {children}
-            <ReactQueryDevtools />
-            {showDevtools && (
-                <React.Suspense fallback={null}>
-                    <ReactQueryDevtoolsProduction />
-                </React.Suspense>
-            )}
-        </QueryClientProvider>
+        <AuthProvider>
+            <QueryClientProvider client={queryClient}>
+                {children}
+                <ReactQueryDevtools />
+                {showDevtools && (
+                    <React.Suspense fallback={null}>
+                        <ReactQueryDevtoolsProduction />
+                    </React.Suspense>
+                )}
+            </QueryClientProvider>
+        </AuthProvider>
     )
 }

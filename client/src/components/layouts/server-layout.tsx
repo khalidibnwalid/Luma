@@ -10,6 +10,7 @@ import { useRouter } from "next/router"
 import { createContext, useContext } from "react"
 import { twJoin } from "tailwind-merge"
 import { useAppLayoutContext } from "./app-layout"
+import { useAuth } from "../providers/auth-provider"
 
 interface ServerLayoutContext {
     rooms: Room[]
@@ -29,6 +30,8 @@ export default function ServerLayout({
 
     const context = useAppLayoutContext()
     const { activeServer } = context
+
+    const {user} = useAuth()
 
     const { data: rooms } = useRoomsQuery(activeServer?.id)
     const wrappedContext: ServerLayoutContext = {
@@ -50,7 +53,7 @@ export default function ServerLayout({
                         <ChatRoom activeRoomId={roomId} rooms={rooms} />
                         <ScrollBar />
                     </ScrollArea>
-                    <UserPanel user="User" subText="#000" />
+                    <UserPanel user={user.username} />
                 </section>
                 {children}
             </main >
@@ -117,7 +120,7 @@ function UserPanel({
     subText
 }: {
     user: string
-    subText: string
+    subText?: string
 }) {
     return (
         <div className="p-2 flex items-center gap-2">
