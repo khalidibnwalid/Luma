@@ -48,18 +48,18 @@ func (r *RoomUserStatus) WithRoomID(roomID string) *RoomUserStatus {
 	return r
 }
 
-func (r *RoomUserStatus) Create(db *mongo.Database) error {
+func (r *RoomUserStatus) Create(db *mongo.Database, ctx context.Context) error {
 	r.ID = bson.NewObjectID()
 
 	coll := db.Collection(RoomUserStatusCollection)
-	if _, err := coll.InsertOne(context.TODO(), r); err != nil {
+	if _, err := coll.InsertOne(ctx, r); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (r *RoomUserStatus) FindById(db *mongo.Database, id ...string) error {
+func (r *RoomUserStatus) FindById(db *mongo.Database, ctx context.Context, id ...string) error {
 	coll := db.Collection(RoomUserStatusCollection)
 
 	var (
@@ -76,7 +76,7 @@ func (r *RoomUserStatus) FindById(db *mongo.Database, id ...string) error {
 	}
 
 	filter := bson.M{"_id": objId}
-	err = coll.FindOne(context.TODO(), filter).Decode(r)
+	err = coll.FindOne(ctx, filter).Decode(r)
 	if err != nil {
 		return err
 	}

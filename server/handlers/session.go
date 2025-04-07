@@ -14,6 +14,8 @@ import (
 // TODO forget password
 // LoginHandler
 func (ctx *ServerContext) PostSession(w http.ResponseWriter, r *http.Request) {
+	rCtx := r.Context()
+
 	var req struct {
 		UsernameOrEmail string `json:"username"`
 		Password        string `json:"password"`
@@ -37,7 +39,7 @@ func (ctx *ServerContext) PostSession(w http.ResponseWriter, r *http.Request) {
 	// check if the user exists
 	if validateEmail(req.UsernameOrEmail) {
 		user = models.NewUser().WithEmail(req.UsernameOrEmail)
-		if err := user.FindByEmail(ctx.Db); err != nil {
+		if err := user.FindByEmail(ctx.Db, rCtx); err != nil {
 			if err == mongo.ErrNoDocuments {
 				newErrorResponse(w, http.StatusUnauthorized, enumUserDoesNotExist)
 				return
@@ -47,7 +49,7 @@ func (ctx *ServerContext) PostSession(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		user = models.NewUser().WithUsername(req.UsernameOrEmail)
-		if err := user.FindByUsername(ctx.Db); err != nil {
+		if err := user.FindByUsername(ctx.Db, rCtx); err != nil {
 			if err == mongo.ErrNoDocuments {
 				newErrorResponse(w, http.StatusUnauthorized, enumUserDoesNotExist)
 				return

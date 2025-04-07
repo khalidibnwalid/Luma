@@ -45,18 +45,18 @@ func (s *ServerUserStatus) WithServerID(serverID string) *ServerUserStatus {
 	return s
 }
 
-func (s *ServerUserStatus) Create(db *mongo.Database) error {
+func (s *ServerUserStatus) Create(db *mongo.Database, ctx context.Context) error {
 	s.ID = bson.NewObjectID()
 
 	coll := db.Collection(ServerUserStatusCollection)
-	if _, err := coll.InsertOne(context.TODO(), s); err != nil {
+	if _, err := coll.InsertOne(ctx, s); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (s *ServerUserStatus) Update(db *mongo.Database) error {
+func (s *ServerUserStatus) Update(db *mongo.Database, ctx context.Context) error {
 	coll := db.Collection(ServerUserStatusCollection)
 
 	update := bson.M{
@@ -67,7 +67,7 @@ func (s *ServerUserStatus) Update(db *mongo.Database) error {
 	}
 
 	filter := bson.M{"_id": s.ID}
-	_, err := coll.UpdateOne(context.TODO(), filter, update)
+	_, err := coll.UpdateOne(ctx, filter, update)
 	if err != nil {
 		return err
 	}
@@ -75,10 +75,10 @@ func (s *ServerUserStatus) Update(db *mongo.Database) error {
 	return nil
 }
 
-func (s *ServerUserStatus) Delete(db *mongo.Database) error {
+func (s *ServerUserStatus) Delete(db *mongo.Database, ctx context.Context) error {
 	coll := db.Collection(ServerUserStatusCollection)
 	filter := bson.M{"_id": s.ID}
-	_, err := coll.DeleteOne(context.TODO(), filter)
+	_, err := coll.DeleteOne(ctx, filter)
 	if err != nil {
 		return err
 	}
@@ -86,7 +86,7 @@ func (s *ServerUserStatus) Delete(db *mongo.Database) error {
 	return nil
 }
 
-func (s *ServerUserStatus) FindById(db *mongo.Database, id ...string) error {
+func (s *ServerUserStatus) FindById(db *mongo.Database, ctx context.Context, id ...string) error {
 	coll := db.Collection(ServerUserStatusCollection)
 
 	var (
@@ -104,7 +104,7 @@ func (s *ServerUserStatus) FindById(db *mongo.Database, id ...string) error {
 	}
 
 	filter := bson.M{"_id": objId}
-	err = coll.FindOne(context.TODO(), filter).Decode(s)
+	err = coll.FindOne(ctx, filter).Decode(s)
 	if err != nil {
 		return err
 	}
@@ -118,9 +118,7 @@ type RoomsServerWithStatus struct {
 }
 
 // you can provide the UserId as a parameter or use the ID from the struct
-func (s *ServerUserStatus) GetServers(db *mongo.Database, userId ...string) ([]RoomsServerWithStatus, error) {
-	ctx := context.TODO() // TODO
-
+func (s *ServerUserStatus) GetServers(db *mongo.Database, ctx context.Context, userId ...string) ([]RoomsServerWithStatus, error) {
 	coll := db.Collection(ServerUserStatusCollection)
 	serversColl := db.Collection(RoomsServerCollection)
 
@@ -169,7 +167,7 @@ func (s *ServerUserStatus) GetServers(db *mongo.Database, userId ...string) ([]R
 	if err := cursor.Err(); err != nil {
 		return nil, err
 	}
-	
+
 	defer cursor.Close(ctx)
 
 	// TODO: for a small scale this is fine

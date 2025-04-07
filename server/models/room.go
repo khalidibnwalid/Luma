@@ -36,13 +36,13 @@ func (r *Room) WithObjID(id bson.ObjectID) *Room {
 	return r
 }
 
-func (r *Room) Create(db *mongo.Database) error {
+func (r *Room) Create(db *mongo.Database, ctx context.Context) error {
 	r.ID = bson.NewObjectID()
 	r.CreatedAt = time.Now().Unix()
 	r.UpdatedAt = time.Now().Unix()
 
 	coll := db.Collection(RoomsCollection)
-	if _, err := coll.InsertOne(context.TODO(), r); err != nil {
+	if _, err := coll.InsertOne(ctx, r); err != nil {
 		return err
 	}
 
@@ -50,7 +50,7 @@ func (r *Room) Create(db *mongo.Database) error {
 }
 
 // You can provide ID as a parameter or in the struct
-func (r *Room) FindById(db *mongo.Database, id ...string) error {
+func (r *Room) FindById(db *mongo.Database, ctx context.Context, id ...string) error {
 	coll := db.Collection(RoomsCollection)
 
 	// Convert the string ID to a bson.ObjectID, since the ID in the database is an ObjectID
@@ -67,14 +67,14 @@ func (r *Room) FindById(db *mongo.Database, id ...string) error {
 		objId = r.ID
 	}
 
-	if err := coll.FindOne(context.TODO(), bson.M{"_id": objId}).Decode(&r); err != nil {
+	if err := coll.FindOne(ctx, bson.M{"_id": objId}).Decode(&r); err != nil {
 		return err
 	}
 	return nil
 }
 
 // You can provide ID as a parameter or in the struct
-func (r *Room) GetMessages(db *mongo.Database, room_id ...string) ([]Message, error) {
+func (r *Room) GetMessages(db *mongo.Database, ctx context.Context, room_id ...string) ([]Message, error) {
 	coll := db.Collection("messages")
 
 	// limitVal := int64(messagesLimit)
@@ -125,15 +125,15 @@ func (r *Room) GetMessages(db *mongo.Database, room_id ...string) ([]Message, er
 		},
 	}
 
-	cursor, err := coll.Aggregate(context.TODO(), pipeline)
+	cursor, err := coll.Aggregate(ctx, pipeline)
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(context.TODO())
+	defer cursor.Close(ctx)
 
 	// not providing author data
 	var MessagesWithAuthors []Message
-	if err := cursor.All(context.TODO(), &MessagesWithAuthors); err != nil {
+	if err := cursor.All(ctx, &MessagesWithAuthors); err != nil {
 		return nil, err
 	}
 

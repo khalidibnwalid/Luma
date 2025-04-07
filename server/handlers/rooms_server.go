@@ -10,6 +10,7 @@ import (
 )
 
 func (ctx *ServerContext) validateRoomsServerID(w http.ResponseWriter, r *http.Request) (models.RoomsServer, error) {
+	rCtx := r.Context()
 	serverID := r.PathValue("id")
 	if serverID == "" {
 		http.Error(w, "Server ID is required", http.StatusBadRequest)
@@ -17,7 +18,7 @@ func (ctx *ServerContext) validateRoomsServerID(w http.ResponseWriter, r *http.R
 	}
 
 	serverData := models.RoomsServer{}
-	if err := serverData.FindById(ctx.Db, serverID); err != nil {
+	if err := serverData.FindById(ctx.Db, rCtx ,serverID); err != nil {
 		http.Error(w, "Server not found", http.StatusNotFound)
 		return models.RoomsServer{}, errors.New("Server not found")
 	}
@@ -39,9 +40,10 @@ func (ctx *ServerContext) GetRoomsServer(w http.ResponseWriter, r *http.Request)
 
 // get all servers of a user
 func (ctx *ServerContext) GetUserRoomsServer(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(middlewares.CtxUserIDKey).(string)
+	rCtx := r.Context()
+	userID := rCtx.Value(middlewares.CtxUserIDKey).(string)
 
-	servers, err := models.NewServerUserStatus().WithUserID(userID).GetServers(ctx.Db)
+	servers, err := models.NewServerUserStatus().WithUserID(userID).GetServers(ctx.Db, rCtx)
 	if err != nil {
 		http.Error(w, "Error getting servers", http.StatusInternalServerError)
 		return
@@ -53,6 +55,7 @@ func (ctx *ServerContext) GetUserRoomsServer(w http.ResponseWriter, r *http.Requ
 }
 
 func (ctx *ServerContext) PostRoomsServer(w http.ResponseWriter, r *http.Request) {
+	rCtx := r.Context()
 	var t struct {
 		Name string `json:"name"`
 	}
@@ -65,12 +68,12 @@ func (ctx *ServerContext) PostRoomsServer(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	userID := r.Context().Value(middlewares.CtxUserIDKey).(string)
+	userID := rCtx.Value(middlewares.CtxUserIDKey).(string)
 
 	server := models.NewRoomsServer().WithOwnerID(userID)
 	server.Name = t.Name
 
-	if err := server.Create(ctx.Db); err != nil {
+	if err := server.Create(ctx.Db, rCtx); err != nil {
 		http.Error(w, "Error creating server", http.StatusInternalServerError)
 		return
 	}
@@ -81,12 +84,13 @@ func (ctx *ServerContext) PostRoomsServer(w http.ResponseWriter, r *http.Request
 }
 
 func (ctx *ServerContext) GetRoomsOfServer(w http.ResponseWriter, r *http.Request) {
+	rCtx := r.Context()
 	server, err := ctx.validateRoomsServerID(w, r)
 	if err != nil {
 		return
 	}
 
-	rooms, err := server.GetRooms(ctx.Db)
+	rooms, err := server.GetRooms(ctx.Db, rCtx)
 	if err != nil {
 		http.Error(w, "Error getting rooms", http.StatusInternalServerError)
 		return
@@ -98,6 +102,7 @@ func (ctx *ServerContext) GetRoomsOfServer(w http.ResponseWriter, r *http.Reques
 }
 
 func (ctx *ServerContext) PostRoomToServer(w http.ResponseWriter, r *http.Request) {
+	rCtx := r.Context()
 	server, err := ctx.validateRoomsServerID(w, r)
 	if err != nil {
 		return
@@ -130,7 +135,7 @@ func (ctx *ServerContext) PostRoomToServer(w http.ResponseWriter, r *http.Reques
 		GroupName: t.GroupName,
 	}
 
-	if err := room.Create(ctx.Db); err != nil {
+	if err := room.Create(ctx.Db, rCtx); err != nil {
 		http.Error(w, "Error creating room", http.StatusInternalServerError)
 		return
 	}
@@ -141,16 +146,17 @@ func (ctx *ServerContext) PostRoomToServer(w http.ResponseWriter, r *http.Reques
 }
 
 func (ctx *ServerContext) JoinServer(w http.ResponseWriter, r *http.Request) {
+	rCtx := r.Context()
 	server, err := ctx.validateRoomsServerID(w, r)
 	if err != nil {
 		newErrorResponse(w, http.StatusBadRequest, enumBadRequest)
 		return
 	}
 
-	userID := r.Context().Value(middlewares.CtxUserIDKey).(string)
+	userID := rCtx.Value(middlewares.CtxUserIDKey).(string)
 
 	userStatus := models.NewServerUserStatus().WithUserID(userID).WithServerID(server.ID.Hex())
-	if err := userStatus.Create(ctx.Db); err != nil {
+	if err := userStatus.Create(ctx.Db, rCtx); err != nil {
 		newErrorResponse(w, http.StatusInternalServerError, enumInternalServerError)
 		return
 	}

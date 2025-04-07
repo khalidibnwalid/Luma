@@ -12,11 +12,12 @@ import (
 )
 
 func (s *ServerContext) GetUser(w http.ResponseWriter, r *http.Request) {
+	rCtx := r.Context()
 	user := models.NewUser()
-	userID := r.Context().Value(middlewares.CtxUserIDKey).(string)
+	userID := rCtx.Value(middlewares.CtxUserIDKey).(string)
 	user.WithHexID(userID)
 
-	if err := user.FindByID(s.Db); err != nil {
+	if err := user.FindByID(s.Db, rCtx); err != nil {
 		if err == mongo.ErrNoDocuments {
 			// unlikely to happen, but just in case a user delete their account and use their token again
 			newErrorResponse(w, http.StatusNotFound, enumUserDoesNotExist)
@@ -35,6 +36,8 @@ func (s *ServerContext) GetUser(w http.ResponseWriter, r *http.Request) {
 // TODO add a validator
 // Signup Handler / Create a new user
 func (s *ServerContext) PostUser(w http.ResponseWriter, r *http.Request) {
+	rCtx := r.Context()
+
 	var req struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
@@ -74,7 +77,7 @@ func (s *ServerContext) PostUser(w http.ResponseWriter, r *http.Request) {
 	var err error
 	// user exists? if so it won't return an error
 	// if it does return an error of mongo.ErrNoDocuments, we assume that the user doesn't exist
-	if err = user.FindByUsername(s.Db); err == nil {
+	if err = user.FindByUsername(s.Db, rCtx); err == nil {
 		newErrorResponse(w, http.StatusBadRequest, enumUsernameExists)
 		return
 	} else if err != mongo.ErrNoDocuments {
@@ -83,7 +86,7 @@ func (s *ServerContext) PostUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := user.Create(s.Db); err != nil {
+	if err := user.Create(s.Db, rCtx); err != nil {
 		newErrorResponse(w, http.StatusInternalServerError, enumInternalServerError)
 		log.Printf("Error creating user: %v", err)
 		return

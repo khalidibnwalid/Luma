@@ -20,6 +20,7 @@ var upgrader = websocket.Upgrader{
 }
 
 func (ctx *ServerContext) validateRoomID(w http.ResponseWriter, r *http.Request) (models.Room, error) {
+	rCtx := r.Context()
 	roomID := r.PathValue("id")
 	if roomID == "" {
 		http.Error(w, "Room ID is required", http.StatusBadRequest)
@@ -27,7 +28,7 @@ func (ctx *ServerContext) validateRoomID(w http.ResponseWriter, r *http.Request)
 	}
 
 	roomData := models.Room{}
-	if err := roomData.FindById(ctx.Db, roomID); err != nil {
+	if err := roomData.FindById(ctx.Db, rCtx, roomID); err != nil {
 		http.Error(w, "Room not found", http.StatusNotFound)
 		return models.Room{}, nil
 	}
@@ -37,6 +38,7 @@ func (ctx *ServerContext) validateRoomID(w http.ResponseWriter, r *http.Request)
 
 func (ctx *ServerContext) WSRoom(store *core.TopicStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		rCtx := r.Context()
 		room, err := ctx.validateRoomID(w, r)
 		if err != nil {
 			return
@@ -54,9 +56,9 @@ func (ctx *ServerContext) WSRoom(store *core.TopicStore) http.HandlerFunc {
 		roomTopic.Subscribe(conn)
 		defer roomTopic.Unsubscribe(conn)
 
-		userId := r.Context().Value(middlewares.CtxUserIDKey).(string)
+		userId := rCtx.Value(middlewares.CtxUserIDKey).(string)
 		user := models.NewUser().WithHexID(userId)
-		user.FindByID(ctx.Db) // not finding the user
+		user.FindByID(ctx.Db, rCtx) // not finding the user
 
 		for {
 			var body struct {
@@ -75,7 +77,7 @@ func (ctx *ServerContext) WSRoom(store *core.TopicStore) http.HandlerFunc {
 			msg.Content = body.Content
 			msg.RoomID = room.ID.Hex()
 			msg.AuthorID = user.ID.Hex()
-			msg.Create(ctx.Db)
+			msg.Create(ctx.Db, rCtx)
 
 			msg.Author = *user
 
@@ -86,12 +88,13 @@ func (ctx *ServerContext) WSRoom(store *core.TopicStore) http.HandlerFunc {
 }
 
 func (ctx *ServerContext) GETRoomMessages(w http.ResponseWriter, r *http.Request) {
+	rCtx := r.Context()
 	room, err := ctx.validateRoomID(w, r)
 	if err != nil {
 		return
 	}
 
-	messages, err := room.GetMessages(ctx.Db)
+	messages, err := room.GetMessages(ctx.Db, rCtx)
 	if err != nil {
 		http.Error(w, "Error fetching messages", http.StatusInternalServerError)
 		return

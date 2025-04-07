@@ -56,13 +56,13 @@ func (u *User) WithPassword(unhashedPassword string) *User {
 	return u
 }
 
-func (u *User) Create(db *mongo.Database) error {
+func (u *User) Create(db *mongo.Database, ctx context.Context) error {
 	u.ID = bson.NewObjectID()
 	u.CreatedAt = time.Now().Unix()
 	u.UpdatedAt = time.Now().Unix()
 
 	coll := db.Collection("users")
-	if _, err := coll.InsertOne(context.TODO(), u); err != nil {
+	if _, err := coll.InsertOne(ctx, u); err != nil {
 		return err
 	}
 
@@ -70,7 +70,7 @@ func (u *User) Create(db *mongo.Database) error {
 }
 
 // You can provide ID as a parameter or in the struct
-func (u *User) FindByUsername(db *mongo.Database, username ...string) error {
+func (u *User) FindByUsername(db *mongo.Database, ctx context.Context, username ...string) error {
 	coll := db.Collection("users")
 	var _username string
 
@@ -80,14 +80,14 @@ func (u *User) FindByUsername(db *mongo.Database, username ...string) error {
 		_username = u.Username
 	}
 
-	if err := coll.FindOne(context.TODO(), bson.M{"username": _username}).Decode(&u); err != nil {
+	if err := coll.FindOne(ctx, bson.M{"username": _username}).Decode(&u); err != nil {
 		return err
 	}
 	return nil
 }
 
 // You can provide Email as a parameter or in the struct
-func (u *User) FindByEmail(db *mongo.Database, email ...string) error {
+func (u *User) FindByEmail(db *mongo.Database, ctx context.Context, email ...string) error {
 	coll := db.Collection("users")
 	var _email string
 
@@ -97,13 +97,13 @@ func (u *User) FindByEmail(db *mongo.Database, email ...string) error {
 		_email = u.Email
 	}
 
-	if err := coll.FindOne(context.TODO(), bson.M{"email": _email}).Decode(&u); err != nil {
+	if err := coll.FindOne(ctx, bson.M{"email": _email}).Decode(&u); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (u *User) FindByID(db *mongo.Database, id ...string) error {
+func (u *User) FindByID(db *mongo.Database, ctx context.Context, id ...string) error {
 	coll := db.Collection("users")
 
 	var (
@@ -119,25 +119,25 @@ func (u *User) FindByID(db *mongo.Database, id ...string) error {
 		objId = u.ID
 	}
 
-	if err := coll.FindOne(context.TODO(), bson.M{"_id": objId}).Decode(&u); err != nil {
+	if err := coll.FindOne(ctx, bson.M{"_id": objId}).Decode(&u); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (u *User) Update(db *mongo.Database) error {
+func (u *User) Update(db *mongo.Database, ctx context.Context) error {
 	u.UpdatedAt = time.Now().Unix()
 	coll := db.Collection("users")
-	if _, err := coll.UpdateOne(context.TODO(), bson.M{"_id": u.ID}, bson.M{"$set": u}); err != nil {
+	if _, err := coll.UpdateOne(ctx, bson.M{"_id": u.ID}, bson.M{"$set": u}); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (u *User) Delete(db *mongo.Database) error {
+func (u *User) Delete(db *mongo.Database, ctx context.Context) error {
 	coll := db.Collection("users")
-	if _, err := coll.DeleteOne(context.TODO(), bson.M{"_id": u.ID}); err != nil {
+	if _, err := coll.DeleteOne(ctx, bson.M{"_id": u.ID}); err != nil {
 		return err
 	}
 	return nil

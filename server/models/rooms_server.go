@@ -42,13 +42,13 @@ func (rs *RoomsServer) WithOwnerID(ownerID string) *RoomsServer {
 	return rs
 }
 
-func (rs *RoomsServer) Create(db *mongo.Database) error {
+func (rs *RoomsServer) Create(db *mongo.Database, ctx context.Context) error {
 	rs.ID = bson.NewObjectID()
 	rs.CreatedAt = time.Now().Unix()
 	rs.UpdatedAt = time.Now().Unix()
 
 	coll := db.Collection(RoomsServerCollection)
-	if _, err := coll.InsertOne(context.TODO(), rs); err != nil {
+	if _, err := coll.InsertOne(ctx, rs); err != nil {
 		return err
 	}
 
@@ -56,7 +56,7 @@ func (rs *RoomsServer) Create(db *mongo.Database) error {
 }
 
 // You can provide the ID as a parameter or use the ID from the struct
-func (rs *RoomsServer) FindById(db *mongo.Database, id ...string) error {
+func (rs *RoomsServer) FindById(db *mongo.Database,ctx context.Context,  id ...string) error {
 	coll := db.Collection(RoomsServerCollection)
 
 	var (
@@ -71,7 +71,7 @@ func (rs *RoomsServer) FindById(db *mongo.Database, id ...string) error {
 		objId = rs.ID
 	}
 
-	if err := coll.FindOne(context.TODO(), bson.M{"_id": objId}).Decode(&rs); err != nil {
+	if err := coll.FindOne(ctx, bson.M{"_id": objId}).Decode(&rs); err != nil {
 		return err
 	}
 	return nil
@@ -107,7 +107,7 @@ func (rs *RoomsServer) FindById(db *mongo.Database, id ...string) error {
 // }
 
 // You can provide the ServerId as a parameter or use the ID from the struct
-func (rs *RoomsServer) GetRooms(db *mongo.Database, serverID ...string) ([]Room, error) {
+func (rs *RoomsServer) GetRooms(db *mongo.Database, ctx context.Context, serverID ...string) ([]Room, error) {
 	coll := db.Collection("rooms")
 
 	var (
@@ -122,32 +122,32 @@ func (rs *RoomsServer) GetRooms(db *mongo.Database, serverID ...string) ([]Room,
 		objId = rs.ID
 	}
 
-	cursor, err := coll.Find(context.TODO(), bson.M{"server_id": objId})
+	cursor, err := coll.Find(ctx, bson.M{"server_id": objId})
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(context.Background())
+	defer cursor.Close(ctx)
 
 	var rooms []Room
-	if err := cursor.All(context.Background(), &rooms); err != nil {
+	if err := cursor.All(ctx, &rooms); err != nil {
 		return nil, err
 	}
 
 	return rooms, nil
 }
 
-func (rs *RoomsServer) Update(db *mongo.Database) error {
+func (rs *RoomsServer) Update(db *mongo.Database, ctx context.Context) error {
 	rs.UpdatedAt = time.Now().Unix()
 	coll := db.Collection(RoomsServerCollection)
-	if _, err := coll.UpdateOne(context.TODO(), bson.M{"_id": rs.ID}, bson.M{"$set": rs}); err != nil {
+	if _, err := coll.UpdateOne(ctx, bson.M{"_id": rs.ID}, bson.M{"$set": rs}); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (rs *RoomsServer) Delete(db *mongo.Database) error {
+func (rs *RoomsServer) Delete(db *mongo.Database, ctx context.Context) error {
 	coll := db.Collection(RoomsServerCollection)
-	if _, err := coll.DeleteOne(context.TODO(), bson.M{"_id": rs.ID}); err != nil {
+	if _, err := coll.DeleteOne(ctx, bson.M{"_id": rs.ID}); err != nil {
 		return err
 	}
 	return nil

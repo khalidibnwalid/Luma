@@ -38,31 +38,31 @@ func (msg *Message) WithRoomID(roomID string) *Message {
 	return msg
 }
 
-func (msg *Message) Create(db *mongo.Database) error {
+func (msg *Message) Create(db *mongo.Database, ctx context.Context) error {
 	msg.ID = bson.NewObjectID()
 	msg.CreatedAt = time.Now().Unix()
 	msg.UpdatedAt = time.Now().Unix()
 
 	coll := db.Collection("messages")
-	if _, err := coll.InsertOne(context.TODO(), msg); err != nil {
+	if _, err := coll.InsertOne(ctx, msg); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (msg *Message) Update(db *mongo.Database) error {
+func (msg *Message) Update(db *mongo.Database, ctx context.Context) error {
 	msg.UpdatedAt = time.Now().Unix()
 	coll := db.Collection("messages")
-	if _, err := coll.UpdateOne(context.TODO(), bson.M{"_id": msg.ID}, bson.M{"$set": msg}); err != nil {
+	if _, err := coll.UpdateOne(ctx, bson.M{"_id": msg.ID}, bson.M{"$set": msg}); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (msg *Message) Delete(db *mongo.Database) error {
+func (msg *Message) Delete(db *mongo.Database, ctx context.Context) error {
 	coll := db.Collection("messages")
-	if _, err := coll.DeleteOne(context.TODO(), bson.M{"_id": msg.ID}); err != nil {
+	if _, err := coll.DeleteOne(ctx, bson.M{"_id": msg.ID}); err != nil {
 		return err
 	}
 	return nil
