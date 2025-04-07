@@ -8,7 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
-const ServerCollection = "rooms_server"
+const RoomsServerCollection = "rooms_server"
 
 type RoomsServer struct {
 	ID        bson.ObjectID `bson:"_id" json:"id"`
@@ -47,7 +47,7 @@ func (rs *RoomsServer) Create(db *mongo.Database) error {
 	rs.CreatedAt = time.Now().Unix()
 	rs.UpdatedAt = time.Now().Unix()
 
-	coll := db.Collection(ServerCollection)
+	coll := db.Collection(RoomsServerCollection)
 	if _, err := coll.InsertOne(context.TODO(), rs); err != nil {
 		return err
 	}
@@ -57,7 +57,7 @@ func (rs *RoomsServer) Create(db *mongo.Database) error {
 
 // You can provide the ID as a parameter or use the ID from the struct
 func (rs *RoomsServer) FindById(db *mongo.Database, id ...string) error {
-	coll := db.Collection(ServerCollection)
+	coll := db.Collection(RoomsServerCollection)
 
 	var (
 		objId bson.ObjectID
@@ -77,34 +77,34 @@ func (rs *RoomsServer) FindById(db *mongo.Database, id ...string) error {
 	return nil
 }
 
-// You can provide the OwenrID as a parameter or use the ID from the struct
-func (rs *RoomsServer) GetAllServersOfOwner(db *mongo.Database, ownerID ...string) ([]RoomsServer, error) {
-	coll := db.Collection(ServerCollection)
+// You can provide the UserId as a parameter or use the ID from the struct
+// func (rs *RoomsServer) GetAllServersOfUser(db *mongo.Database, ownerID ...string) ([]RoomsServer, error) {
+// 	coll := db.Collection(ServerCollection)
 
-	var (
-		OwenrID string
-		err     error
-		cursor  *mongo.Cursor
-	)
+// 	var (
+// 		OwenrID string
+// 		err     error
+// 		cursor  *mongo.Cursor
+// 	)
 
-	// we need the ID as a hex string
-	if len(ownerID) > 0 {
-		OwenrID = ownerID[0]
-	} else {
-		OwenrID = rs.ID.Hex()
-	}
+// 	// we need the ID as a hex string
+// 	if len(ownerID) > 0 {
+// 		OwenrID = ownerID[0]
+// 	} else {
+// 		OwenrID = rs.ID.Hex()
+// 	}
 
-	if cursor, err = coll.Find(context.TODO(), bson.M{"owner_id": OwenrID}); err != nil {
-		return nil, err
-	}
+// 	if cursor, err = coll.Find(context.TODO(), bson.M{"owner_id": OwenrID}); err != nil {
+// 		return nil, err
+// 	}
 
-	var servers []RoomsServer
-	if err := cursor.All(context.Background(), &servers); err != nil {
-		return nil, err
-	}
+// 	var servers []RoomsServer
+// 	if err := cursor.All(context.Background(), &servers); err != nil {
+// 		return nil, err
+// 	}
 
-	return servers, nil
-}
+// 	return servers, nil
+// }
 
 // You can provide the ServerId as a parameter or use the ID from the struct
 func (rs *RoomsServer) GetRooms(db *mongo.Database, serverID ...string) ([]Room, error) {
@@ -138,7 +138,7 @@ func (rs *RoomsServer) GetRooms(db *mongo.Database, serverID ...string) ([]Room,
 
 func (rs *RoomsServer) Update(db *mongo.Database) error {
 	rs.UpdatedAt = time.Now().Unix()
-	coll := db.Collection(ServerCollection)
+	coll := db.Collection(RoomsServerCollection)
 	if _, err := coll.UpdateOne(context.TODO(), bson.M{"_id": rs.ID}, bson.M{"$set": rs}); err != nil {
 		return err
 	}
@@ -146,7 +146,7 @@ func (rs *RoomsServer) Update(db *mongo.Database) error {
 }
 
 func (rs *RoomsServer) Delete(db *mongo.Database) error {
-	coll := db.Collection(ServerCollection)
+	coll := db.Collection(RoomsServerCollection)
 	if _, err := coll.DeleteOne(context.TODO(), bson.M{"_id": rs.ID}); err != nil {
 		return err
 	}

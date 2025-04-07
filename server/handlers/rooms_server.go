@@ -41,8 +41,7 @@ func (ctx *HandlerContext) GetRoomsServer(w http.ResponseWriter, r *http.Request
 func (ctx *HandlerContext) GetUserRoomsServer(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(middlewares.CtxUserIDKey).(string)
 
-	// temp to get all owned servers, will be changed to get all servers of a user
-	servers, err := models.NewRoomsServer().WithOwnerID(userID).GetAllServersOfOwner(ctx.Db)
+	servers, err := models.NewServerUserStatus().WithUserID(userID).GetServers(ctx.Db)
 	if err != nil {
 		http.Error(w, "Error getting servers", http.StatusInternalServerError)
 		return
@@ -137,6 +136,31 @@ func (ctx *HandlerContext) PostRoomToServer(w http.ResponseWriter, r *http.Reque
 	}
 
 	json, _ := json.Marshal(room)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(json)
+}
+
+func (ctx *HandlerContext) JoinServer(w http.ResponseWriter, r *http.Request) {
+	server, err := ctx.validateRoomsServerID(w, r)
+	if err != nil {
+		newErrorResponse(w, http.StatusBadRequest, enumBadRequest)
+		return
+	}
+
+	userID := r.Context().Value(middlewares.CtxUserIDKey).(string)
+
+	userStatus := models.NewServerUserStatus().WithUserID(userID).WithServerID(server.ID.Hex())
+	if err := userStatus.Create(ctx.Db); err != nil {
+		newErrorResponse(w, http.StatusInternalServerError, enumInternalServerError)
+		return
+	}
+
+	serverWithStatus := &models.RoomsServerWithStatus{
+		RoomsServer: server,
+		Status:      *userStatus,
+	}
+
+	json, _ := json.Marshal(serverWithStatus)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(json)
 }

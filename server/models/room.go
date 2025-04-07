@@ -9,6 +9,7 @@ import (
 )
 
 const messagesLimit = 50
+const RoomsCollection = "rooms"
 
 type Room struct {
 	ID        bson.ObjectID `bson:"_id" json:"id"`
@@ -40,7 +41,7 @@ func (r *Room) Create(db *mongo.Database) error {
 	r.CreatedAt = time.Now().Unix()
 	r.UpdatedAt = time.Now().Unix()
 
-	coll := db.Collection("rooms")
+	coll := db.Collection(RoomsCollection)
 	if _, err := coll.InsertOne(context.TODO(), r); err != nil {
 		return err
 	}
@@ -50,7 +51,7 @@ func (r *Room) Create(db *mongo.Database) error {
 
 // You can provide ID as a parameter or in the struct
 func (r *Room) FindById(db *mongo.Database, id ...string) error {
-	coll := db.Collection("rooms")
+	coll := db.Collection(RoomsCollection)
 
 	// Convert the string ID to a bson.ObjectID, since the ID in the database is an ObjectID
 	var (
