@@ -9,7 +9,7 @@ import (
 	"github.com/khalidibnwalid/Luma/models"
 )
 
-func (ctx *HandlerContext) validateRoomsServerID(w http.ResponseWriter, r *http.Request) (models.RoomsServer, error) {
+func (ctx *ServerContext) validateRoomsServerID(w http.ResponseWriter, r *http.Request) (models.RoomsServer, error) {
 	serverID := r.PathValue("id")
 	if serverID == "" {
 		http.Error(w, "Server ID is required", http.StatusBadRequest)
@@ -25,7 +25,7 @@ func (ctx *HandlerContext) validateRoomsServerID(w http.ResponseWriter, r *http.
 	return serverData, nil
 }
 
-func (ctx *HandlerContext) GetRoomsServer(w http.ResponseWriter, r *http.Request) {
+func (ctx *ServerContext) GetRoomsServer(w http.ResponseWriter, r *http.Request) {
 	server, err := ctx.validateRoomsServerID(w, r)
 	if err != nil {
 		return
@@ -38,7 +38,7 @@ func (ctx *HandlerContext) GetRoomsServer(w http.ResponseWriter, r *http.Request
 }
 
 // get all servers of a user
-func (ctx *HandlerContext) GetUserRoomsServer(w http.ResponseWriter, r *http.Request) {
+func (ctx *ServerContext) GetUserRoomsServer(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(middlewares.CtxUserIDKey).(string)
 
 	servers, err := models.NewServerUserStatus().WithUserID(userID).GetServers(ctx.Db)
@@ -52,7 +52,7 @@ func (ctx *HandlerContext) GetUserRoomsServer(w http.ResponseWriter, r *http.Req
 	w.Write(json)
 }
 
-func (ctx *HandlerContext) PostRoomsServer(w http.ResponseWriter, r *http.Request) {
+func (ctx *ServerContext) PostRoomsServer(w http.ResponseWriter, r *http.Request) {
 	var t struct {
 		Name string `json:"name"`
 	}
@@ -80,7 +80,7 @@ func (ctx *HandlerContext) PostRoomsServer(w http.ResponseWriter, r *http.Reques
 	w.Write(json)
 }
 
-func (ctx *HandlerContext) GetRoomsOfServer(w http.ResponseWriter, r *http.Request) {
+func (ctx *ServerContext) GetRoomsOfServer(w http.ResponseWriter, r *http.Request) {
 	server, err := ctx.validateRoomsServerID(w, r)
 	if err != nil {
 		return
@@ -97,7 +97,7 @@ func (ctx *HandlerContext) GetRoomsOfServer(w http.ResponseWriter, r *http.Reque
 	w.Write(json)
 }
 
-func (ctx *HandlerContext) PostRoomToServer(w http.ResponseWriter, r *http.Request) {
+func (ctx *ServerContext) PostRoomToServer(w http.ResponseWriter, r *http.Request) {
 	server, err := ctx.validateRoomsServerID(w, r)
 	if err != nil {
 		return
@@ -140,7 +140,7 @@ func (ctx *HandlerContext) PostRoomToServer(w http.ResponseWriter, r *http.Reque
 	w.Write(json)
 }
 
-func (ctx *HandlerContext) JoinServer(w http.ResponseWriter, r *http.Request) {
+func (ctx *ServerContext) JoinServer(w http.ResponseWriter, r *http.Request) {
 	server, err := ctx.validateRoomsServerID(w, r)
 	if err != nil {
 		newErrorResponse(w, http.StatusBadRequest, enumBadRequest)

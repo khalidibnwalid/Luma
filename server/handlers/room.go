@@ -19,7 +19,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func (ctx *HandlerContext) validateRoomID(w http.ResponseWriter, r *http.Request) (models.Room, error) {
+func (ctx *ServerContext) validateRoomID(w http.ResponseWriter, r *http.Request) (models.Room, error) {
 	roomID := r.PathValue("id")
 	if roomID == "" {
 		http.Error(w, "Room ID is required", http.StatusBadRequest)
@@ -35,7 +35,7 @@ func (ctx *HandlerContext) validateRoomID(w http.ResponseWriter, r *http.Request
 	return roomData, nil
 }
 
-func (ctx *HandlerContext) WSRoom(store *core.TopicStore) http.HandlerFunc {
+func (ctx *ServerContext) WSRoom(store *core.TopicStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		room, err := ctx.validateRoomID(w, r)
 		if err != nil {
@@ -57,7 +57,6 @@ func (ctx *HandlerContext) WSRoom(store *core.TopicStore) http.HandlerFunc {
 		userId := r.Context().Value(middlewares.CtxUserIDKey).(string)
 		user := models.NewUser().WithHexID(userId)
 		user.FindByID(ctx.Db) // not finding the user
-		
 
 		for {
 			var body struct {
@@ -86,7 +85,7 @@ func (ctx *HandlerContext) WSRoom(store *core.TopicStore) http.HandlerFunc {
 	}
 }
 
-func (ctx *HandlerContext) GETRoomMessages(w http.ResponseWriter, r *http.Request) {
+func (ctx *ServerContext) GETRoomMessages(w http.ResponseWriter, r *http.Request) {
 	room, err := ctx.validateRoomID(w, r)
 	if err != nil {
 		return

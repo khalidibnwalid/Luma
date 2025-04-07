@@ -14,7 +14,7 @@ import (
 
 func main() {
 	env := models.GetEnv()
-	ctx := handlers.NewHandlerContext(env.MongoUri, env.DbName, env.JwtSecret)
+	ctx := handlers.NewServerContext(env.MongoUri, env.DbName, env.JwtSecret)
 	defer func() {
 		_ = ctx.Client.Disconnect(context.Background())
 	}()

@@ -11,7 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
-func (s *HandlerContext) GetUser(w http.ResponseWriter, r *http.Request) {
+func (s *ServerContext) GetUser(w http.ResponseWriter, r *http.Request) {
 	user := models.NewUser()
 	userID := r.Context().Value(middlewares.CtxUserIDKey).(string)
 	user.WithHexID(userID)
@@ -34,7 +34,7 @@ func (s *HandlerContext) GetUser(w http.ResponseWriter, r *http.Request) {
 
 // TODO add a validator
 // Signup Handler / Create a new user
-func (s *HandlerContext) PostUser(w http.ResponseWriter, r *http.Request) {
+func (s *ServerContext) PostUser(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Username string `json:"username"`
 		Password string `json:"password"`

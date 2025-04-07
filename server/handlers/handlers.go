@@ -7,13 +7,13 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
-type HandlerContext struct {
+type ServerContext struct {
 	Db        *mongo.Database
 	Client    *mongo.Client
 	JwtSecret string
 }
 
-func NewHandlerContext(mongoUri, dbName, jwtSecret string) HandlerContext {
+func NewServerContext(mongoUri, dbName, jwtSecret string) ServerContext {
 	var (
 		client *mongo.Client
 		err    error
@@ -30,7 +30,7 @@ func NewHandlerContext(mongoUri, dbName, jwtSecret string) HandlerContext {
 
 	log.Printf("Connected to MongoDB\n")
 
-	ctx := &HandlerContext{
+	ctx := &ServerContext{
 		Db:        client.Database(dbName),
 		Client:    client,
 		JwtSecret: jwtSecret,

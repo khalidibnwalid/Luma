@@ -13,7 +13,7 @@ import (
 // TODO add a validator
 // TODO forget password
 // LoginHandler
-func (ctx *HandlerContext) PostSession(w http.ResponseWriter, r *http.Request) {
+func (ctx *ServerContext) PostSession(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		UsernameOrEmail string `json:"username"`
 		Password        string `json:"password"`
