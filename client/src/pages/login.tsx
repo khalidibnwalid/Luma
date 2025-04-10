@@ -11,6 +11,7 @@ import { useMutation } from "@tanstack/react-query";
 import { Eye, EyeOff } from "lucide-react";
 import Head from "next/head";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
@@ -22,6 +23,8 @@ interface Form {
 const LOGIN_URL = "http://localhost:8080/v1/auth/sessions"
 
 export default function LoginPage() {
+    const router = useRouter()
+
     const { register, handleSubmit } = useForm<Form>()
     const [error, setError] = useState<string | null>(null)
     const [showPassword, setShowPassword] = useState(false);
@@ -33,9 +36,7 @@ export default function LoginPage() {
                 username,
                 password,
             }),
-        // onSuccess: (data) => {
-        //     // TODO user provider
-        // },
+        onSuccess: () => router.push("/chat"),
         onError: (error: Error) =>
             setError(AuthErrorMessages[error.message as AuthError]),
     }, queryClient)
