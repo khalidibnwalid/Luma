@@ -1,16 +1,13 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { useRoomsQuery } from "@/lib/queries/rooms"
 import type { Room } from "@/types/room"
 import { RoomsServer } from "@/types/rooms-server"
-import { Hash, Headphones, Mic, Settings } from "lucide-react"
+import { Hash } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/router"
 import { createContext, useContext } from "react"
 import { twJoin } from "tailwind-merge"
 import { useAppLayoutContext } from "./app-layout"
-import { useAuth } from "../providers/auth-provider"
 
 interface ServerLayoutContext {
     rooms: Room[]
@@ -30,8 +27,6 @@ export default function ServerLayout({
 
     const context = useAppLayoutContext()
     const { activeServer } = context
-
-    const {user} = useAuth()
 
     const { data: rooms } = useRoomsQuery(activeServer?.id)
     const wrappedContext: ServerLayoutContext = {
@@ -53,7 +48,6 @@ export default function ServerLayout({
                         <ChatRoom activeRoomId={roomId} rooms={rooms} />
                         <ScrollBar />
                     </ScrollArea>
-                    <UserPanel user={user.username} />
                 </section>
                 {children}
             </main >
@@ -112,39 +106,5 @@ function RoomPanel({
             </button>
         </Link>
 
-    )
-}
-
-function UserPanel({
-    user,
-    subText
-}: {
-    user: string
-    subText?: string
-}) {
-    return (
-        <div className="p-2 flex items-center gap-2">
-            <Avatar className="size-8">
-                <AvatarImage src="" alt="User" />
-                <AvatarFallback>U</AvatarFallback>
-            </Avatar>
-
-            <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium">{user}</p>
-                <p className="text-xs text-foreground/50 truncate">{subText}</p>
-            </div>
-
-            <div className="flex gap-1">
-                <Button variant="ghost" size="icon" className="size-8 rounded-full">
-                    <Mic className="size-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="size-8 rounded-full">
-                    <Headphones className="size-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="size-8 rounded-full">
-                    <Settings className="size-4" />
-                </Button>
-            </div>
-        </div>
     )
 }
