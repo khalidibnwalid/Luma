@@ -8,6 +8,7 @@ import Link from "next/link"
 import { useRouter } from "next/router"
 import { createContext, useContext } from "react"
 import { twJoin } from "tailwind-merge"
+import AddServerDialog from "../features/server/add-server-dialog"
 
 interface UserLayoutContext {
     activeServer?: RoomsServer,
@@ -63,12 +64,14 @@ export default function AppLayout({
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        className="rounded-2xl border-2  duration-200 p-0 size-12 flex items-center justify-center"
-                                    >
-                                        <PlusIcon />
-                                    </Button>
+                                    <AddServerDialog>
+                                        <Button
+                                            variant="ghost"
+                                            className="rounded-2xl border-2  duration-200 p-0 size-12 flex items-center justify-center"
+                                        >
+                                            <PlusIcon />
+                                        </Button>
+                                    </AddServerDialog>
                                 </TooltipTrigger>
                                 <TooltipContent side="right">
                                     <p>Add a Server</p>
