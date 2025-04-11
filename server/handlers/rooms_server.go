@@ -78,7 +78,18 @@ func (ctx *ServerContext) PostRoomsServer(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	json, _ := json.Marshal(server)
+	userStatus := models.NewServerUserStatus().WithUserID(userID).WithServerID(server.ID.Hex())
+	if err := userStatus.Create(ctx.Db, rCtx); err != nil {
+		newErrorResponse(w, http.StatusInternalServerError, enumInternalServerError)
+		return
+	}
+
+	serverWithStatus := &models.RoomsServerWithStatus{
+		RoomsServer: *server,
+		Status:      *userStatus,
+	}
+
+	json, _ := json.Marshal(serverWithStatus)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(json)
 }
