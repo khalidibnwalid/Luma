@@ -49,6 +49,7 @@ func main() {
 	unAuthedRoutes := core.NewApp()
 	unAuthedRoutes.Use(middlewares.Logging)
 	unAuthedRoutes.HandleFunc("POST /sessions", ctx.PostSession)
+	unAuthedRoutes.HandleFunc("DELETE /sessions", ctx.DeleteSession)
 	unAuthedRoutes.HandleFunc("POST /users", ctx.PostUser)
 
 	v1 := http.NewServeMux()

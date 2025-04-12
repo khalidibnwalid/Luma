@@ -106,3 +106,19 @@ func (s *ServerContext) PostUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	w.Write(json)
 }
+
+// Just replace the cookie with an empty token
+func (s *ServerContext) DeleteSession(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Add("Set-Cookie", core.SerializeCookieWithToken(""))
+
+	type response struct {
+		Message string `json:"message"`
+	}
+
+	json, _ := json.Marshal(response{
+		Message: "LOGGED_OUT",
+	})
+
+	w.Write(json)
+}
