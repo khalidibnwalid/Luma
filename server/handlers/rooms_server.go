@@ -9,21 +9,21 @@ import (
 	"github.com/khalidibnwalid/Luma/models"
 )
 
-func (ctx *ServerContext) validateRoomsServerID(w http.ResponseWriter, r *http.Request) (models.RoomsServer, error) {
+func (ctx *ServerContext) validateRoomsServerID(w http.ResponseWriter, r *http.Request) (*models.RoomsServer, error) {
 	rCtx := r.Context()
 	serverID := r.PathValue("id")
 	if serverID == "" {
 		http.Error(w, "Server ID is required", http.StatusBadRequest)
-		return models.RoomsServer{}, nil
+		return &models.RoomsServer{}, nil
 	}
 
 	serverData := models.RoomsServer{}
 	if err := serverData.FindById(ctx.Db, rCtx ,serverID); err != nil {
 		http.Error(w, "Server not found", http.StatusNotFound)
-		return models.RoomsServer{}, errors.New("Server not found")
+		return &models.RoomsServer{}, errors.New("Server not found")
 	}
 
-	return serverData, nil
+	return &serverData, nil
 }
 
 func (ctx *ServerContext) GetRoomsServer(w http.ResponseWriter, r *http.Request) {
@@ -173,7 +173,7 @@ func (ctx *ServerContext) JoinServer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	serverWithStatus := &models.RoomsServerWithStatus{
-		RoomsServer: server,
+		RoomsServer: *server,
 		Status:      *userStatus,
 	}
 

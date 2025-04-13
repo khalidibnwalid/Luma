@@ -19,21 +19,21 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func (ctx *ServerContext) validateRoomID(w http.ResponseWriter, r *http.Request) (models.Room, error) {
+func (ctx *ServerContext) validateRoomID(w http.ResponseWriter, r *http.Request) (*models.Room, error) {
 	rCtx := r.Context()
 	roomID := r.PathValue("id")
 	if roomID == "" {
 		http.Error(w, "Room ID is required", http.StatusBadRequest)
-		return models.Room{}, nil
+		return &models.Room{}, nil
 	}
 
 	roomData := models.Room{}
 	if err := roomData.FindById(ctx.Db, rCtx, roomID); err != nil {
 		http.Error(w, "Room not found", http.StatusNotFound)
-		return models.Room{}, nil
+		return &models.Room{}, nil
 	}
 
-	return roomData, nil
+	return &roomData, nil
 }
 
 func (ctx *ServerContext) WSRoom(store *core.TopicStore) http.HandlerFunc {
