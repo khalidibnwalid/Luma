@@ -13,12 +13,18 @@ const RoomUserStatusCollection = "room_user_status"
 type RoomUserStatus struct {
 	ID            bson.ObjectID `bson:"_id" json:"id"`
 	UserID        string        `bson:"user_id" json:"userId"`
+	ServerID      string        `bson:"server_id" json:"serverId"`
 	RoomID        string        `bson:"room_id" json:"roomId"`
 	LastReadMsgID string        `bson:"last_read_msg_id" json:"lastReadMsgId"`
 	// IsCleared indicates that the user has read all messages in the room,
 	// thus each new messge will reset the LastReadMsgID to the new message ID.
 	// if false, the LastReadMsgID won't be updated when a new message arrives
 	IsCleared bool `bson:"is_cleared" json:"isCleared"`
+}
+
+type RoomWithStatus struct {
+	*Room
+	Status *RoomUserStatus `json:"status"`
 }
 
 func NewRoomUserStatus() *RoomUserStatus {

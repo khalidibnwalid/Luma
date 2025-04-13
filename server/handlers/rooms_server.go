@@ -18,7 +18,7 @@ func (ctx *ServerContext) validateRoomsServerID(w http.ResponseWriter, r *http.R
 	}
 
 	serverData := models.RoomsServer{}
-	if err := serverData.FindById(ctx.Db, rCtx ,serverID); err != nil {
+	if err := serverData.FindById(ctx.Db, rCtx, serverID); err != nil {
 		http.Error(w, "Server not found", http.StatusNotFound)
 		return &models.RoomsServer{}, errors.New("Server not found")
 	}
@@ -139,6 +139,8 @@ func (ctx *ServerContext) PostRoomToServer(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	userId := rCtx.Value(middlewares.CtxUserIDKey).(string)
+
 	room := models.Room{
 		ServerID:  server.ID,
 		Type:      t.Type,
@@ -146,12 +148,26 @@ func (ctx *ServerContext) PostRoomToServer(w http.ResponseWriter, r *http.Reques
 		GroupName: t.GroupName,
 	}
 
+	status := models.RoomUserStatus{
+		UserID:    userId,
+		RoomID:    room.ID.Hex(),
+		ServerID:  server.ID.Hex(),
+		IsCleared: true,
+	}
+
+	status.Create(ctx.Db, rCtx)
+
+	RoomWithStatus := models.RoomWithStatus{
+		Room:   &room,
+		Status: &status,
+	}
+
 	if err := room.Create(ctx.Db, rCtx); err != nil {
 		http.Error(w, "Error creating room", http.StatusInternalServerError)
 		return
 	}
 
-	json, _ := json.Marshal(room)
+	json, _ := json.Marshal(RoomWithStatus)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(json)
 }
