@@ -74,7 +74,7 @@ func (ctx *ServerContext) PostRoomsServer(w http.ResponseWriter, r *http.Request
 	server.Name = t.Name
 
 	if err := server.Create(ctx.Db, rCtx); err != nil {
-		http.Error(w, "Error creating server", http.StatusInternalServerError)
+		newErrorResponse(w, http.StatusInternalServerError, enumInternalServerError)
 		return
 	}
 
@@ -96,14 +96,16 @@ func (ctx *ServerContext) PostRoomsServer(w http.ResponseWriter, r *http.Request
 
 func (ctx *ServerContext) GetRoomsOfServer(w http.ResponseWriter, r *http.Request) {
 	rCtx := r.Context()
+	userId := rCtx.Value(middlewares.CtxUserIDKey).(string)
 	server, err := ctx.validateRoomsServerID(w, r)
 	if err != nil {
+		newErrorResponse(w, http.StatusInternalServerError, enumInternalServerError)
 		return
 	}
 
-	rooms, err := server.GetRooms(ctx.Db, rCtx)
+	rooms, err := server.GetRooms(ctx.Db, rCtx, userId)
 	if err != nil {
-		http.Error(w, "Error getting rooms", http.StatusInternalServerError)
+		newErrorResponse(w, http.StatusInternalServerError, enumInternalServerError)
 		return
 	}
 
@@ -148,6 +150,11 @@ func (ctx *ServerContext) PostRoomToServer(w http.ResponseWriter, r *http.Reques
 		GroupName: t.GroupName,
 	}
 
+	if err := room.Create(ctx.Db, rCtx); err != nil {
+		http.Error(w, "Error creating room", http.StatusInternalServerError)
+		return
+	}
+
 	status := models.RoomUserStatus{
 		UserID:    userId,
 		RoomID:    room.ID.Hex(),
@@ -160,11 +167,6 @@ func (ctx *ServerContext) PostRoomToServer(w http.ResponseWriter, r *http.Reques
 	RoomWithStatus := models.RoomWithStatus{
 		Room:   &room,
 		Status: &status,
-	}
-
-	if err := room.Create(ctx.Db, rCtx); err != nil {
-		http.Error(w, "Error creating room", http.StatusInternalServerError)
-		return
 	}
 
 	json, _ := json.Marshal(RoomWithStatus)

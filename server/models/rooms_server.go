@@ -56,7 +56,7 @@ func (rs *RoomsServer) Create(db *mongo.Database, ctx context.Context) error {
 }
 
 // You can provide the ID as a parameter or use the ID from the struct
-func (rs *RoomsServer) FindById(db *mongo.Database,ctx context.Context,  id ...string) error {
+func (rs *RoomsServer) FindById(db *mongo.Database, ctx context.Context, id ...string) error {
 	coll := db.Collection(RoomsServerCollection)
 
 	var (
@@ -77,65 +77,6 @@ func (rs *RoomsServer) FindById(db *mongo.Database,ctx context.Context,  id ...s
 	return nil
 }
 
-// You can provide the UserId as a parameter or use the ID from the struct
-// func (rs *RoomsServer) GetAllServersOfUser(db *mongo.Database, ownerID ...string) ([]RoomsServer, error) {
-// 	coll := db.Collection(ServerCollection)
-
-// 	var (
-// 		OwenrID string
-// 		err     error
-// 		cursor  *mongo.Cursor
-// 	)
-
-// 	// we need the ID as a hex string
-// 	if len(ownerID) > 0 {
-// 		OwenrID = ownerID[0]
-// 	} else {
-// 		OwenrID = rs.ID.Hex()
-// 	}
-
-// 	if cursor, err = coll.Find(context.TODO(), bson.M{"owner_id": OwenrID}); err != nil {
-// 		return nil, err
-// 	}
-
-// 	var servers []RoomsServer
-// 	if err := cursor.All(context.Background(), &servers); err != nil {
-// 		return nil, err
-// 	}
-
-// 	return servers, nil
-// }
-
-// You can provide the ServerId as a parameter or use the ID from the struct
-func (rs *RoomsServer) GetRooms(db *mongo.Database, ctx context.Context, serverID ...string) ([]Room, error) {
-	coll := db.Collection("rooms")
-
-	var (
-		objId bson.ObjectID
-		err   error
-	)
-	if len(serverID) > 0 {
-		if objId, err = bson.ObjectIDFromHex(serverID[0]); err != nil {
-			return nil, err
-		}
-	} else {
-		objId = rs.ID
-	}
-
-	cursor, err := coll.Find(ctx, bson.M{"server_id": objId})
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Close(ctx)
-
-	var rooms []Room
-	if err := cursor.All(ctx, &rooms); err != nil {
-		return nil, err
-	}
-
-	return rooms, nil
-}
-
 func (rs *RoomsServer) Update(db *mongo.Database, ctx context.Context) error {
 	rs.UpdatedAt = time.Now().Unix()
 	coll := db.Collection(RoomsServerCollection)
@@ -151,4 +92,73 @@ func (rs *RoomsServer) Delete(db *mongo.Database, ctx context.Context) error {
 		return err
 	}
 	return nil
+}
+
+
+// You can provide the ServerId as a parameter or use the ID from the struct
+// TODO: add user's role check
+func (rs *RoomsServer) GetRooms(db *mongo.Database, ctx context.Context, userId string) ([]RoomWithStatus, error) {
+	coll := db.Collection(RoomsCollection)
+
+	pipeline := []bson.M{
+		{
+			"$lookup": bson.M{
+				"from": RoomUserStatusCollection,
+				"let": bson.M{
+					"roomId": "$_id",
+				},
+				"pipeline": []bson.M{
+					{
+						"$match": bson.M{
+							"$expr": bson.M{
+								"$and": bson.A{
+									bson.M{"$eq": bson.A{bson.M{"$toObjectId": "$room_id"}, "$$roomId"}},
+									bson.M{"$eq": bson.A{"$server_id", rs.ID.Hex()}},
+									bson.M{"$eq": bson.A{"$user_id", userId}},
+								},
+							},
+						},
+					},
+				},
+				"as": "status",
+			},
+		},
+		{
+			"$unwind": bson.M{
+				"path": "$status",
+			},
+		},
+		{
+			"$match": bson.M{
+				"status": bson.M{"$ne": nil},
+			},
+		},
+		{ // for marshalling the RoomWithStatus struct, which has room as an embedded struct
+			"$project": bson.M{
+				"_id":    0,
+				"status": 1,
+				"room": bson.M{
+					"$mergeObjects": bson.A{
+						bson.M{"status": 0},
+						"$$ROOT",
+					},
+				},
+			},
+		},
+	}
+
+	var (
+		err    error
+		cursor *mongo.Cursor
+	)
+	if cursor, err = coll.Aggregate(ctx, pipeline); err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var rooms []RoomWithStatus
+	if err = cursor.All(ctx, &rooms); err != nil {
+		return nil, err
+	}
+	return rooms, nil
 }
