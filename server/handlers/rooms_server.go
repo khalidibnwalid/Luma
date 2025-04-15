@@ -85,7 +85,7 @@ func (ctx *ServerContext) PostRoomsServer(w http.ResponseWriter, r *http.Request
 	}
 
 	serverWithStatus := &models.RoomsServerWithStatus{
-		RoomsServer: *server,
+		RoomsServer: server,
 		Status:      *userStatus,
 	}
 
@@ -191,7 +191,7 @@ func (ctx *ServerContext) JoinServer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	serverWithStatus := &models.RoomsServerWithStatus{
-		RoomsServer: *server,
+		RoomsServer: server,
 		Status:      *userStatus,
 	}
 
