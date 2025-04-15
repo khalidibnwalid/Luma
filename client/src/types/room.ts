@@ -1,3 +1,4 @@
+import { RoomUserStatus } from "./user-status"
 
 export enum RoomType {
     ServerRoom = "server_room",
@@ -14,4 +15,5 @@ export interface Room {
     type: RoomType
     createdAt: number
     updatedAt: number
+    status: RoomUserStatus
 }

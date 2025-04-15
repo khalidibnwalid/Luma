@@ -22,3 +22,38 @@ export function useRoomsQuery(serverId?: string) {
 
     return { initCache, ...usequery };
 }
+
+
+
+export function mutateRoomsCache(serverId: string, roomId?: string) {
+    const allRooms = ["rooms", serverId]
+    const key = ["room", roomId]
+
+    function add(room: Room) {
+        queryClient.setQueryData(allRooms, (old: Room[]) => {
+            return [...old, room]
+        });
+
+        queryClient.setQueryData(key, room);
+    }
+
+    function remove(roomId: string) {
+        queryClient.setQueryData(allRooms, (old: Room[]) => {
+            return old.filter((room) => room.id !== roomId)
+        });
+        queryClient.setQueryData(key, undefined);
+    }
+
+    function update(room: Partial<Room>) {
+        queryClient.setQueryData(allRooms, (old: Room[]) => {
+            return old.map((r) => r.id === room.id ? room : r)
+        })
+        queryClient.setQueryData(key, room);
+    }
+
+    return {
+        add,
+        remove,
+        update,
+    }
+}

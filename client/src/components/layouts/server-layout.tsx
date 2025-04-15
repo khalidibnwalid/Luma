@@ -7,6 +7,7 @@ import Link from "next/link"
 import { useRouter } from "next/router"
 import { createContext, useContext } from "react"
 import { twJoin } from "tailwind-merge"
+import ServerSidebarContextMenu from "../features/server/sidebar-context-menu"
 import { useAppLayoutContext } from "./app-layout"
 
 interface ServerLayoutContext {
@@ -28,7 +29,9 @@ export default function ServerLayout({
     const context = useAppLayoutContext()
     const { activeServer } = context
 
-    const { data: rooms } = useRoomsQuery(activeServer?.id)
+    const { data: rooms, initCache } = useRoomsQuery(activeServer?.id)
+    initCache()
+
     const wrappedContext: ServerLayoutContext = {
         rooms: rooms ?? [],
         activeServer: activeServer!
@@ -39,23 +42,23 @@ export default function ServerLayout({
     return (
         <ServerContext.Provider value={wrappedContext}>
             <main className="flex h-screen w-full">
-                <section className="w-60 bg-foreground/5 flex flex-col">
+                <ServerSidebarContextMenu className="w-60 bg-foreground/5 flex flex-col">
                     <div className="p-4 shadow-md">
                         <h2 className="font-bold text-lg capitalize">{activeServer?.name}</h2>
                     </div>
 
                     <ScrollArea className="flex-1 overflow-y-auto">
-                        <ChatRoom activeRoomId={roomId} rooms={rooms} />
+                        <ChatRooms activeRoomId={roomId} rooms={rooms} />
                         <ScrollBar />
                     </ScrollArea>
-                </section>
+                </ServerSidebarContextMenu>
                 {children}
             </main >
         </ServerContext.Provider>
     )
 }
 
-function ChatRoom({
+function ChatRooms({
     activeRoomId,
     rooms = []
 }: {
