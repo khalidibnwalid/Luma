@@ -88,3 +88,11 @@ func validateEmail(email string) bool {
 	_, err := mail.ParseAddress(email)
 	return err == nil
 }
+
+// Just replace the cookie with an empty token
+func (s *ServerContext) DeleteSession(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Add("Set-Cookie", core.SerializeCookieWithToken(""))
+
+	newOkResponse(w, http.StatusOK, enumLoggedOut)
+}
