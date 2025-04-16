@@ -1,3 +1,4 @@
+import EmojiSelector from "@/components/features/chat/emoji-selector"
 import AppLayout from "@/components/layouts/app-layout"
 import ServerLayout, { useServerContext } from "@/components/layouts/server-layout"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -8,7 +9,7 @@ import { useIntersectionObserver } from "@/lib/hooks/useIntersectionObserver"
 import { useMessagesQuery } from "@/lib/queries/message"
 import type { MessageResponse } from "@/types/message"
 import type { User } from "@/types/user"
-import { Bell, Hash, PencilIcon, Plus, Search, TrashIcon, Users } from "lucide-react"
+import { Bell, Hash, PencilIcon, Plus, Search, SmilePlusIcon, TrashIcon, Users } from "lucide-react"
 import { useRouter } from "next/router"
 import { ReactElement, useEffect, useRef, useState } from "react"
 import useWebSocket from 'react-use-websocket'
@@ -37,7 +38,7 @@ export default function Page() {
         if (endOfScroll && isSnappedToBottom) {
             endOfScroll.scrollIntoView({ behavior: "smooth" })
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [newMessageHistory, messages])
 
     useEffect(() => {
@@ -114,7 +115,12 @@ export default function Page() {
                 </ScrollArea>
 
                 <div className="py-5 px-4">
-                    <div className="flex items-center px-3 gap-x-3">
+                    <div className="flex items-center px-3 gap-x-2">
+                        <EmojiSelector onEmojiSelect={e => input.current!.value += e}>
+                            <Button variant="ghost" size="icon" className="rounded-full text">
+                                <SmilePlusIcon />
+                            </Button>
+                        </EmojiSelector>
                         <Button variant="ghost" size="icon" className="rounded-full" onClick={sendFormattedMessage}>
                             <Plus />
                         </Button>
@@ -122,7 +128,7 @@ export default function Page() {
                             ref={input}
                             onKeyDown={inputOnKeyDown}
                             placeholder={`Message #${activeRoom.name}`}
-                            className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                            className="border-0 md:text-md py-5 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
                         />
                     </div>
                 </div>
