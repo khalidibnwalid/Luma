@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	enumLoggedOut = "LOGGED_OUT"
+	EnumLoggedOut = "LOGGED_OUT"
 )
 
 func newOkResponse(w http.ResponseWriter, code int, msg string) {

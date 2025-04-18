@@ -74,13 +74,13 @@ func (ctx *ServerContext) PostRoomsServer(w http.ResponseWriter, r *http.Request
 	server.Name = t.Name
 
 	if err := server.Create(ctx.Db, rCtx); err != nil {
-		newErrorResponse(w, http.StatusInternalServerError, enumInternalServerError)
+		newErrorResponse(w, http.StatusInternalServerError, EnumInternalServerError)
 		return
 	}
 
 	userStatus := models.NewServerUserStatus().WithUserID(userID).WithServerID(server.ID.Hex())
 	if err := userStatus.Create(ctx.Db, rCtx); err != nil {
-		newErrorResponse(w, http.StatusInternalServerError, enumInternalServerError)
+		newErrorResponse(w, http.StatusInternalServerError, EnumInternalServerError)
 		return
 	}
 
@@ -99,13 +99,13 @@ func (ctx *ServerContext) GetRoomsOfServer(w http.ResponseWriter, r *http.Reques
 	userId := rCtx.Value(middlewares.CtxUserIDKey).(string)
 	server, err := ctx.validateRoomsServerID(w, r)
 	if err != nil {
-		newErrorResponse(w, http.StatusInternalServerError, enumInternalServerError)
+		newErrorResponse(w, http.StatusInternalServerError, EnumInternalServerError)
 		return
 	}
 
 	rooms, err := server.GetRooms(ctx.Db, rCtx, userId)
 	if err != nil {
-		newErrorResponse(w, http.StatusInternalServerError, enumInternalServerError)
+		newErrorResponse(w, http.StatusInternalServerError, EnumInternalServerError)
 		return
 	}
 
@@ -178,7 +178,7 @@ func (ctx *ServerContext) JoinServer(w http.ResponseWriter, r *http.Request) {
 	rCtx := r.Context()
 	server, err := ctx.validateRoomsServerID(w, r)
 	if err != nil {
-		newErrorResponse(w, http.StatusBadRequest, enumBadRequest)
+		newErrorResponse(w, http.StatusBadRequest, EnumBadRequest)
 		return
 	}
 
@@ -186,7 +186,7 @@ func (ctx *ServerContext) JoinServer(w http.ResponseWriter, r *http.Request) {
 
 	userStatus := models.NewServerUserStatus().WithUserID(userID).WithServerID(server.ID.Hex())
 	if err := userStatus.Create(ctx.Db, rCtx); err != nil {
-		newErrorResponse(w, http.StatusInternalServerError, enumInternalServerError)
+		newErrorResponse(w, http.StatusInternalServerError, EnumInternalServerError)
 		return
 	}
 

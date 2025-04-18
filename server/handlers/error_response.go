@@ -12,7 +12,7 @@ type errorResponse struct {
 
 // newErrorResponse creates a new error response with the given code and error message.
 // It sets the Content-Type header to application/json and writes the error message to the response body in a standard format.
-func newErrorResponse(w http.ResponseWriter, code int ,err string ,msg ...string) {
+func newErrorResponse(w http.ResponseWriter, code int, err string, msg ...string) {
 	w.Header().Set("Content-Type", "application/json")
 
 	res := errorResponse{
@@ -30,19 +30,19 @@ func newErrorResponse(w http.ResponseWriter, code int ,err string ,msg ...string
 
 // user registration error codes
 const (
-	enumUsernameExists   = "USERNAME_EXISTS"
-	enumUsernameRequired = "USERNAME_REQUIRED"
-	enumUsernameInvalid  = "USERNAME_INVALID"
-	enumUserDoesNotExist = "USER_DOES_NOT_EXIST"
-	enumPasswordRequired = "PASSWORD_REQUIRED"
-	enumPasswordInvalid  = "PASSWORD_INVALID"
-	enumEmailRequired    = "EMAIL_REQUIRED"
-	enumEmailInvalid     = "EMAIL_INVALID"
+	EnumUsernameExists   = "USERNAME_EXISTS"
+	EnumUsernameRequired = "USERNAME_REQUIRED"
+	EnumUsernameInvalid  = "USERNAME_INVALID"
+	EnumUserDoesNotExist = "USER_DOES_NOT_EXIST"
+	EnumPasswordRequired = "PASSWORD_REQUIRED"
+	EnumPasswordInvalid  = "PASSWORD_INVALID"
+	EnumEmailRequired    = "EMAIL_REQUIRED"
+	EnumEmailInvalid     = "EMAIL_INVALID"
 )
 
 const (
-	enumInternalServerError = "INTERNAL_SERVER_ERROR"
-	enumNotFound            = "NOT_FOUND"
-	enumBadRequest          = "BAD_REQUEST"
-	enumUnauthorized        = "UNAUTHORIZED"
+	EnumInternalServerError = "INTERNAL_SERVER_ERROR"
+	EnumNotFound            = "NOT_FOUND"
+	EnumBadRequest          = "BAD_REQUEST"
+	EnumUnauthorized        = "UNAUTHORIZED"
 )

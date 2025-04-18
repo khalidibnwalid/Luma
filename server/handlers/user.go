@@ -20,10 +20,10 @@ func (s *ServerContext) GetUser(w http.ResponseWriter, r *http.Request) {
 	if err := user.FindByID(s.Db, rCtx); err != nil {
 		if err == mongo.ErrNoDocuments {
 			// unlikely to happen, but just in case a user delete their account and use their token again
-			newErrorResponse(w, http.StatusNotFound, enumUserDoesNotExist)
+			newErrorResponse(w, http.StatusNotFound, EnumUserDoesNotExist)
 			return
 		}
-		newErrorResponse(w, http.StatusInternalServerError, enumInternalServerError)
+		newErrorResponse(w, http.StatusInternalServerError, EnumInternalServerError)
 		return
 	}
 
@@ -45,26 +45,26 @@ func (s *ServerContext) PostUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		newErrorResponse(w, http.StatusBadRequest, enumBadRequest)
+		newErrorResponse(w, http.StatusBadRequest, EnumBadRequest)
 		return
 	}
 
 	if req.Username == "" {
-		newErrorResponse(w, http.StatusBadRequest, enumUsernameRequired)
+		newErrorResponse(w, http.StatusBadRequest, EnumUsernameRequired)
 		return
 	}
 
 	if req.Password == "" {
-		newErrorResponse(w, http.StatusBadRequest, enumPasswordRequired)
+		newErrorResponse(w, http.StatusBadRequest, EnumPasswordRequired)
 		return
 	}
 
 	if req.Email == "" {
-		newErrorResponse(w, http.StatusBadRequest, enumEmailRequired)
+		newErrorResponse(w, http.StatusBadRequest, EnumEmailRequired)
 		return
 	}
 	if !validateEmail(req.Email) {
-		newErrorResponse(w, http.StatusBadRequest, enumEmailInvalid)
+		newErrorResponse(w, http.StatusBadRequest, EnumEmailInvalid)
 		return
 	}
 	// TODO
@@ -78,16 +78,16 @@ func (s *ServerContext) PostUser(w http.ResponseWriter, r *http.Request) {
 	// user exists? if so it won't return an error
 	// if it does return an error of mongo.ErrNoDocuments, we assume that the user doesn't exist
 	if err = user.FindByUsername(s.Db, rCtx); err == nil {
-		newErrorResponse(w, http.StatusBadRequest, enumUsernameExists)
+		newErrorResponse(w, http.StatusBadRequest, EnumUsernameExists)
 		return
 	} else if err != mongo.ErrNoDocuments {
 		// if not a 'Not Found' error, then it is a real error
-		newErrorResponse(w, http.StatusInternalServerError, enumInternalServerError)
+		newErrorResponse(w, http.StatusInternalServerError, EnumInternalServerError)
 		return
 	}
 
 	if err := user.Create(s.Db, rCtx); err != nil {
-		newErrorResponse(w, http.StatusInternalServerError, enumInternalServerError)
+		newErrorResponse(w, http.StatusInternalServerError, EnumInternalServerError)
 		log.Printf("Error creating user: %v", err)
 		return
 	}
@@ -95,7 +95,7 @@ func (s *ServerContext) PostUser(w http.ResponseWriter, r *http.Request) {
 	// create a token for the user
 	token, err := core.GenerateJwtToken(s.JwtSecret, user.ID.Hex())
 	if err != nil {
-		newErrorResponse(w, http.StatusInternalServerError, enumInternalServerError)
+		newErrorResponse(w, http.StatusInternalServerError, EnumInternalServerError)
 		return
 	}
 

@@ -22,17 +22,17 @@ func (ctx *ServerContext) PostSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		newErrorResponse(w, http.StatusBadRequest, enumBadRequest)
+		newErrorResponse(w, http.StatusBadRequest, EnumBadRequest)
 		return
 	}
 
 	if req.UsernameOrEmail == "" {
-		newErrorResponse(w, http.StatusBadRequest, enumUsernameInvalid)
+		newErrorResponse(w, http.StatusBadRequest, EnumUsernameInvalid)
 		return
 	}
 
 	if req.Password == "" {
-		newErrorResponse(w, http.StatusBadRequest, enumPasswordInvalid)
+		newErrorResponse(w, http.StatusBadRequest, EnumPasswordInvalid)
 		return
 	}
 	var user *models.User
@@ -41,20 +41,20 @@ func (ctx *ServerContext) PostSession(w http.ResponseWriter, r *http.Request) {
 		user = models.NewUser().WithEmail(req.UsernameOrEmail)
 		if err := user.FindByEmail(ctx.Db, rCtx); err != nil {
 			if err == mongo.ErrNoDocuments {
-				newErrorResponse(w, http.StatusUnauthorized, enumUserDoesNotExist)
+				newErrorResponse(w, http.StatusUnauthorized, EnumUserDoesNotExist)
 				return
 			}
-			newErrorResponse(w, http.StatusInternalServerError, enumInternalServerError)
+			newErrorResponse(w, http.StatusInternalServerError, EnumInternalServerError)
 			return
 		}
 	} else {
 		user = models.NewUser().WithUsername(req.UsernameOrEmail)
 		if err := user.FindByUsername(ctx.Db, rCtx); err != nil {
 			if err == mongo.ErrNoDocuments {
-				newErrorResponse(w, http.StatusUnauthorized, enumUserDoesNotExist)
+				newErrorResponse(w, http.StatusUnauthorized, EnumUserDoesNotExist)
 				return
 			}
-			newErrorResponse(w, http.StatusInternalServerError, enumInternalServerError)
+			newErrorResponse(w, http.StatusInternalServerError, EnumInternalServerError)
 			return
 		}
 	}
@@ -62,17 +62,17 @@ func (ctx *ServerContext) PostSession(w http.ResponseWriter, r *http.Request) {
 	// check if the password is correct
 	if err := core.VerifyHashWithSalt(req.Password, user.HashedPassword); err != nil {
 		if err == core.ErrHashVerificationFailed {
-			newErrorResponse(w, http.StatusUnauthorized, enumPasswordInvalid)
+			newErrorResponse(w, http.StatusUnauthorized, EnumPasswordInvalid)
 			return
 		}
-		newErrorResponse(w, http.StatusInternalServerError, enumInternalServerError)
+		newErrorResponse(w, http.StatusInternalServerError, EnumInternalServerError)
 		return
 	}
 
 	token, err := core.GenerateJwtToken(ctx.JwtSecret, user.ID.Hex())
 
 	if err != nil {
-		newErrorResponse(w, http.StatusInternalServerError, enumInternalServerError)
+		newErrorResponse(w, http.StatusInternalServerError, EnumInternalServerError)
 		return
 	}
 
@@ -94,5 +94,5 @@ func (s *ServerContext) DeleteSession(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Add("Set-Cookie", core.SerializeCookieWithToken(""))
 
-	newOkResponse(w, http.StatusOK, enumLoggedOut)
+	newOkResponse(w, http.StatusOK, EnumLoggedOut)
 }
