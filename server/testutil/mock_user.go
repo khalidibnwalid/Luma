@@ -6,6 +6,7 @@ import (
 
 	"github.com/khalidibnwalid/Luma/core"
 	"github.com/khalidibnwalid/Luma/models"
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
@@ -24,4 +25,12 @@ func MockUser(t *testing.T, db *mongo.Database) (user *models.User, password str
 		user.Delete(db, context.Background())
 	})
 	return user, password
+}
+
+func DeleteUserByUsername(t *testing.T, db *mongo.Database, username string) {
+	t.Helper()
+	coll := db.Collection("users")
+	if _, err := coll.DeleteOne(context.Background(), bson.M{"username": username}); err != nil {
+		t.Log("error deleting user: ", err)
+	}
 }
