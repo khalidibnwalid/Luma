@@ -47,8 +47,11 @@ func ValidateJwtToken(secret, tokenString string) (*jwt.Token, jwt.MapClaims, bo
 
 func SerializeCookieWithToken(token string, secure ...bool) string {
 	formatedExpire := time.Now().Add(JwtTimeToLive).Format(time.RFC1123Z)
+	if token != "" {
+		token = "Bearer " + token
+	}
 
-	cookie := fmt.Sprintf("%s=Bearer %s; SameSite=Lax; Expires=%s; Path=/; HttpOnly;", JwtSessionCookieName, token, formatedExpire)
+	cookie := fmt.Sprintf("%s=%s; SameSite=Lax; Expires=%s; Path=/; HttpOnly;", JwtSessionCookieName, token, formatedExpire)
 	if len(secure) > 0 && secure[0] {
 		return cookie + " Secure;"
 	}

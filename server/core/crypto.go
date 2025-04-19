@@ -20,6 +20,14 @@ func GenerateRandomBytes(length uint32) ([]byte, error) {
 	return buffer, nil
 }
 
+func GenerateRandomString(length uint32) (string, error) {
+	bytes, err := GenerateRandomBytes(length)
+	if err != nil {
+		return "", err
+	}
+	return base64.RawStdEncoding.EncodeToString(bytes), nil
+}
+
 type hashingOptions struct {
 	iterations  uint32
 	memory      uint32
