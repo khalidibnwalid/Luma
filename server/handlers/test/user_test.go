@@ -33,21 +33,12 @@ func TestGetUser(t *testing.T) {
 			t.Errorf("Wrong response format should be json: %v", err)
 		}
 
-		if resBody["username"] != user.Username {
-			t.Errorf("Expected username %s, got %s", user.Username, resBody["username"])
-		}
-
-		if resBody["email"] != user.Email {
-			t.Errorf("Expected email %s, got %s", user.Email, resBody["email"])
-		}
-
-		if resBody["id"] != user.ID.Hex() {
-			t.Errorf("Expected id %s, got %s", user.ID.Hex(), resBody["id"])
-		}
-
-		if resBody["password"] != nil {
-			t.Errorf("Expected password to be empty, got %s", resBody["password"])
-		}
+		testutil.AssertInterface(t, map[string]interface{}{
+			"username": user.Username,
+			"email":    user.Email,
+			"id":       user.ID.Hex(),
+			"password": nil,
+		}, resBody)
 	})
 
 	t.Run("Should return error if user not found", func(t *testing.T) {
@@ -97,21 +88,16 @@ func TestPostUser(t *testing.T) {
 
 		t.Log("Response body: ", resBody)
 
-		if resBody["username"] != username {
-			t.Errorf("Expected username testuser, got %s", resBody["username"])
-		}
-
-		if resBody["email"] != username+"@example.com" {
-			t.Errorf("Expected email got %s", resBody["email"])
-		}
+		testutil.AssertInterface(t, map[string]interface{}{
+			"username": username,
+			"email":    username + "@example.com",
+			"password": nil,
+		}, resBody)
 
 		if resBody["id"] == nil {
 			t.Error("Expected id to be set")
 		}
 
-		if resBody["password"] != nil {
-			t.Errorf("Expected password to be empty, got %s", resBody["password"])
-		}
 	})
 
 	t.Run("Should return error with empty username", func(t *testing.T) {
@@ -131,9 +117,9 @@ func TestPostUser(t *testing.T) {
 			t.Errorf("Wrong response format should be json: %v", err)
 		}
 
-		if reqBody["error"] != handlers.EnumUsernameRequired {
-			t.Errorf("Expected error %s, got %s", handlers.EnumUsernameRequired, reqBody["error"])
-		}
+		testutil.AssertInterface(t, map[string]interface{}{
+			"error": handlers.EnumUsernameRequired,
+		}, reqBody)
 	})
 
 	t.Run("Should return error with empty password", func(t *testing.T) {
@@ -153,9 +139,10 @@ func TestPostUser(t *testing.T) {
 			t.Errorf("Wrong response format should be json: %v", err)
 		}
 
-		if reqBody["error"] != handlers.EnumPasswordRequired {
-			t.Errorf("Expected error %s, got %s", handlers.EnumPasswordRequired, reqBody["error"])
-		}
+		testutil.AssertInterface(t, map[string]interface{}{
+			"error": handlers.EnumPasswordRequired,
+		}, reqBody)
+
 	})
 
 	t.Run("Should return error with empty email", func(t *testing.T) {
@@ -175,9 +162,9 @@ func TestPostUser(t *testing.T) {
 			t.Errorf("Wrong response format should be json: %v", err)
 		}
 
-		if reqBody["error"] != handlers.EnumEmailRequired {
-			t.Errorf("Expected error %s, got %s", handlers.EnumEmailRequired, reqBody["error"])
-		}
+		testutil.AssertInterface(t, map[string]interface{}{
+			"error": handlers.EnumEmailRequired,
+		}, reqBody)
 	})
 
 	t.Run("Should return error with invalid email", func(t *testing.T) {
@@ -197,9 +184,9 @@ func TestPostUser(t *testing.T) {
 			t.Errorf("Wrong response format should be json: %v", err)
 		}
 
-		if reqBody["error"] != handlers.EnumEmailInvalid {
-			t.Errorf("Expected error %s, got %s", handlers.EnumEmailInvalid, reqBody["error"])
-		}
+		testutil.AssertInterface(t, map[string]interface{}{
+			"error": handlers.EnumEmailInvalid,
+		}, reqBody)
 	})
 
 	t.Run("Should return error with duplicate username", func(t *testing.T) {
@@ -223,9 +210,9 @@ func TestPostUser(t *testing.T) {
 			t.Errorf("Wrong response format should be json: %v", err)
 		}
 
-		if reqBody["error"] != handlers.EnumUsernameExists {
-			t.Errorf("Expected error %s, got %s", handlers.EnumUsernameExists, reqBody["error"])
-		}
+		testutil.AssertInterface(t, map[string]interface{}{
+			"error": handlers.EnumUsernameExists,
+		}, reqBody)
 	})
 
 	t.Run("Should return error with invalid JSON", func(t *testing.T) {

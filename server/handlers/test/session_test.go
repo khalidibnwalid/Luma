@@ -101,22 +101,12 @@ func TestPostSession(t *testing.T) {
 			t.Errorf("Wrong response format should be json %v", err)
 		}
 
-		if resBody["username"] != user.Username {
-			t.Errorf("Expected username %s, got %s", user.Username, resBody["username"])
-		}
-
-		if resBody["email"] != user.Email {
-			t.Errorf("Expected email %s, got %s", user.Email, resBody["email"])
-		}
-
-		if resBody["id"] != user.ID.Hex() {
-			t.Errorf("Expected id %s, got %s", user.ID.Hex(), resBody["id"])
-		}
-
-		if resBody["password"] != nil {
-			t.Errorf("Expected password to be empty, got %s", resBody["password"])
-		}
-
+		testutil.AssertInterface(t, map[string]interface{}{
+			"username": user.Username,
+			"email":    user.Email,
+			"id":       user.ID.Hex(),
+			"password": nil,
+		}, resBody)
 	})
 
 	t.Run("Should return a cookie and user data if email and password are correct", func(t *testing.T) {
@@ -155,22 +145,12 @@ func TestPostSession(t *testing.T) {
 			t.Errorf("Wrong response format: %v", err)
 		}
 
-		if resBody["username"] != user.Username {
-			t.Errorf("Expected username %s, got %s", user.Username, resBody["username"])
-		}
-
-		if resBody["email"] != user.Email {
-			t.Errorf("Expected email %s, got %s", user.Email, resBody["email"])
-		}
-
-		if resBody["id"] != user.ID.Hex() {
-			t.Errorf("Expected id %s, got %s", user.ID.Hex(), resBody["id"])
-		}
-
-		if resBody["password"] != nil {
-			t.Errorf("Expected password to be empty, got %s", resBody["password"])
-		}
-
+		testutil.AssertInterface(t, map[string]interface{}{
+			"username": user.Username,
+			"email":    user.Email,
+			"id":       user.ID.Hex(),
+			"password": nil,
+		}, resBody)
 	})
 
 	t.Run("Should not login if password is wrong", func(t *testing.T) {
@@ -189,14 +169,15 @@ func TestPostSession(t *testing.T) {
 			t.Errorf("Expected status code 401, got %d", w.Code)
 		}
 
-		var resBody map[string]string
+		var resBody map[string]interface{}
 		if err := json.Unmarshal(w.Body.Bytes(), &resBody); err != nil {
 			t.Errorf("Wrong response format: %v", err)
 		}
 
-		if resBody["error"] != handlers.EnumPasswordInvalid {
-			t.Errorf("Expected message %s, got %s", handlers.EnumPasswordInvalid, resBody["error"])
-		}
+		testutil.AssertInterface(t, map[string]interface{}{
+			"error": handlers.EnumPasswordInvalid,
+		}, resBody)
+
 	})
 	t.Run("Should not login if username or email is empty", func(t *testing.T) {
 		data := []byte(`{"username": "", "password": "wrongpassword"}`)

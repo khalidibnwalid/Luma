@@ -23,6 +23,10 @@ func AssertInterface(t *testing.T, expected, actual map[string]interface{}) {
 			} else {
 				t.Errorf("Expected %s to be map[string]interface{}, got %T", k, actual[k])
 			}
+		} else if v == nil {
+			if actual[k] != nil {
+				t.Errorf("Expected %s to be nil, got %v", k, actual[k])
+			}
 		} else {
 			t.Errorf("Expected %s to be string or map[string]interface{}, got %T", k, v)
 		}
