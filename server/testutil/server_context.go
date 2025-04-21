@@ -19,11 +19,11 @@ func NewTestingContext(t *testing.T) handlers.ServerContext {
 	)
 
 	if client, err = core.CreateMongoClient("mongodb://root:example@localhost:27017/"); err != nil {
-		panic(err)
+		t.Fatalf("MongoDB connection error: %v", err)
 	}
 
 	if err = core.PingDB(client, "Testing"); err != nil {
-		panic(err)
+		t.Fatalf("MongoDB ping error: %v", err)
 	}
 
 	ctx := &handlers.ServerContext{
