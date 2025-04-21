@@ -65,6 +65,17 @@ func (r *RoomUserStatus) Create(db *mongo.Database, ctx context.Context) error {
 	return nil
 }
 
+func (r *RoomUserStatus) Delete(db *mongo.Database, ctx context.Context) error {
+	coll := db.Collection(RoomUserStatusCollection)
+
+	filter := bson.M{"_id": r.ID}
+	if _, err := coll.DeleteOne(ctx, filter); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (r *RoomUserStatus) FindById(db *mongo.Database, ctx context.Context, id ...string) error {
 	coll := db.Collection(RoomUserStatusCollection)
 
