@@ -13,19 +13,23 @@ func (ctx *ServerContext) validateRoomsServerID(w http.ResponseWriter, r *http.R
 	rCtx := r.Context()
 	serverID := r.PathValue("id")
 	if serverID == "" {
-		http.Error(w, "Server ID is required", http.StatusBadRequest)
-		return &models.RoomsServer{}, nil
+		w.Header().Set("Content-Type", "application/json")
+		newErrorResponse(w, http.StatusBadRequest, EnumServerIdRequired)
+		return &models.RoomsServer{}, errors.New(EnumServerIdRequired)
 	}
 
 	serverData := models.RoomsServer{}
 	if err := serverData.FindById(ctx.Db, rCtx, serverID); err != nil {
-		http.Error(w, "Server not found", http.StatusNotFound)
-		return &models.RoomsServer{}, errors.New("Server not found")
+		w.Header().Set("Content-Type", "application/json")
+		newErrorResponse(w, http.StatusNotFound, EnumServerNotFound)
+		return &models.RoomsServer{}, errors.New(EnumServerNotFound)
 	}
 
 	return &serverData, nil
 }
 
+// Deprecated: use GetUserRoomsServer instead, might keep it for refreshing data,
+// but I might also remove it and push notification to the user
 func (ctx *ServerContext) GetRoomsServer(w http.ResponseWriter, r *http.Request) {
 	server, err := ctx.validateRoomsServerID(w, r)
 	if err != nil {
@@ -99,7 +103,6 @@ func (ctx *ServerContext) GetRoomsOfServer(w http.ResponseWriter, r *http.Reques
 	userId := rCtx.Value(middlewares.CtxUserIDKey).(string)
 	server, err := ctx.validateRoomsServerID(w, r)
 	if err != nil {
-		newErrorResponse(w, http.StatusInternalServerError, EnumInternalServerError)
 		return
 	}
 
@@ -128,30 +131,30 @@ func (ctx *ServerContext) PostRoomToServer(w http.ResponseWriter, r *http.Reques
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		newErrorResponse(w, http.StatusBadRequest, EnumBadRequest)
 		return
 	}
 	if t.Type == "" {
-		http.Error(w, "'type' is required", http.StatusBadRequest)
+		newErrorResponse(w, http.StatusBadRequest, EnumServerTypeRequired)
 		return
 	}
 
 	if t.Name == "" {
-		http.Error(w, "'name' is required", http.StatusBadRequest)
+		newErrorResponse(w, http.StatusBadRequest, EnumServerNameRequired)
 		return
 	}
 
 	userId := rCtx.Value(middlewares.CtxUserIDKey).(string)
 
 	room := models.Room{
-		ServerID:  server.ID,
+		ServerID:  server.ID.Hex(),
 		Type:      t.Type,
 		Name:      t.Name,
 		GroupName: t.GroupName,
 	}
 
 	if err := room.Create(ctx.Db, rCtx); err != nil {
-		http.Error(w, "Error creating room", http.StatusInternalServerError)
+		newErrorResponse(w, http.StatusInternalServerError, EnumInternalServerError)
 		return
 	}
 
@@ -178,7 +181,6 @@ func (ctx *ServerContext) JoinServer(w http.ResponseWriter, r *http.Request) {
 	rCtx := r.Context()
 	server, err := ctx.validateRoomsServerID(w, r)
 	if err != nil {
-		newErrorResponse(w, http.StatusBadRequest, EnumBadRequest)
 		return
 	}
 

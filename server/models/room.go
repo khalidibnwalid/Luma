@@ -13,7 +13,7 @@ const RoomsCollection = "rooms"
 
 type Room struct {
 	ID        bson.ObjectID `bson:"_id" json:"id"`
-	ServerID  bson.ObjectID `bson:"server_id" json:"serverId"`
+	ServerID  string        `bson:"server_id" json:"serverId"`
 	Name      string        `bson:"name" json:"name"`
 	GroupName string        `bson:"group_name" json:"groupName"`
 	Type      string        `bson:"type" json:"type"` // direct, server room, server voice room, or users group,
@@ -34,19 +34,6 @@ func (r *Room) WithHexID(id string) *Room {
 func (r *Room) WithObjID(id bson.ObjectID) *Room {
 	r.ID = id
 	return r
-}
-
-func (r *Room) Create(db *mongo.Database, ctx context.Context) error {
-	r.ID = bson.NewObjectID()
-	r.CreatedAt = time.Now().Unix()
-	r.UpdatedAt = time.Now().Unix()
-
-	coll := db.Collection(RoomsCollection)
-	if _, err := coll.InsertOne(ctx, r); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // You can provide ID as a parameter or in the struct
@@ -138,4 +125,27 @@ func (r *Room) GetMessages(db *mongo.Database, ctx context.Context, room_id ...s
 	}
 
 	return MessagesWithAuthors, nil
+}
+
+func (r *Room) Create(db *mongo.Database, ctx context.Context) error {
+	r.ID = bson.NewObjectID()
+	r.CreatedAt = time.Now().Unix()
+	r.UpdatedAt = time.Now().Unix()
+
+	coll := db.Collection(RoomsCollection)
+	if _, err := coll.InsertOne(ctx, r); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *Room) Delete(db *mongo.Database, ctx context.Context) error {
+	coll := db.Collection(RoomsCollection)
+
+	if _, err := coll.DeleteOne(ctx, bson.M{"_id": r.ID}); err != nil {
+		return err
+	}
+
+	return nil
 }

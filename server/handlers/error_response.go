@@ -46,3 +46,12 @@ const (
 	EnumBadRequest          = "BAD_REQUEST"
 	EnumUnauthorized        = "UNAUTHORIZED"
 )
+
+const (
+	EnumServerIdRequired = "SERVER_ID_REQUIRED"
+	EnumServerIdInvalid  = "SERVER_ID_INVALID"
+	EnumServerNotFound   = "SERVER_NOT_FOUND"
+	EnumServerTypeRequired = "SERVER_TYPE_REQUIRED"
+	EnumServerNameRequired = "SERVER_NAME_REQUIRED"
+	
+)
