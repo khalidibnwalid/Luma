@@ -76,6 +76,7 @@ func (ctx *ServerContext) WSRoom(store *core.TopicStore) http.HandlerFunc {
 			var msg models.Message
 			msg.Content = body.Content
 			msg.RoomID = room.ID.Hex()
+			msg.ServerID = room.ServerID
 			msg.AuthorID = user.ID.Hex()
 			msg.Create(ctx.Db, rCtx)
 

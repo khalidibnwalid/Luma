@@ -11,6 +11,7 @@ import (
 type Message struct {
 	ID        bson.ObjectID `bson:"_id" json:"id"`
 	AuthorID  string        `bson:"author_id" json:"authorId"`
+	ServerID  string        `bson:"server_id" json:"serverId"`
 	RoomID    string        `bson:"room_id" json:"roomId"`
 	Content   string        `bson:"content" json:"content"`
 	CreatedAt int64         `bson:"created_at" json:"createdAt"`
