@@ -23,12 +23,14 @@ func (ctx *ServerContext) validateRoomID(w http.ResponseWriter, r *http.Request)
 	rCtx := r.Context()
 	roomID := r.PathValue("id")
 	if roomID == "" {
+		w.Header().Set("Content-Type", "application/json")
 		http.Error(w, "Room ID is required", http.StatusBadRequest)
 		return &models.Room{}, nil
 	}
 
 	roomData := models.Room{}
 	if err := roomData.FindById(ctx.Db, rCtx, roomID); err != nil {
+		w.Header().Set("Content-Type", "application/json")
 		http.Error(w, "Room not found", http.StatusNotFound)
 		return &models.Room{}, nil
 	}
