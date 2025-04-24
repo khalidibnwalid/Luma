@@ -8,6 +8,8 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
+const MessageCollection = "messages"
+
 type Message struct {
 	ID        bson.ObjectID `bson:"_id" json:"id"`
 	AuthorID  string        `bson:"author_id" json:"authorId"`
@@ -44,7 +46,7 @@ func (msg *Message) Create(db *mongo.Database, ctx context.Context) error {
 	msg.CreatedAt = time.Now().Unix()
 	msg.UpdatedAt = time.Now().Unix()
 
-	coll := db.Collection("messages")
+	coll := db.Collection(MessageCollection)
 	if _, err := coll.InsertOne(ctx, msg); err != nil {
 		return err
 	}
@@ -54,7 +56,7 @@ func (msg *Message) Create(db *mongo.Database, ctx context.Context) error {
 
 func (msg *Message) Update(db *mongo.Database, ctx context.Context) error {
 	msg.UpdatedAt = time.Now().Unix()
-	coll := db.Collection("messages")
+	coll := db.Collection(MessageCollection)
 	if _, err := coll.UpdateOne(ctx, bson.M{"_id": msg.ID}, bson.M{"$set": msg}); err != nil {
 		return err
 	}
@@ -62,7 +64,7 @@ func (msg *Message) Update(db *mongo.Database, ctx context.Context) error {
 }
 
 func (msg *Message) Delete(db *mongo.Database, ctx context.Context) error {
-	coll := db.Collection("messages")
+	coll := db.Collection(MessageCollection)
 	if _, err := coll.DeleteOne(ctx, bson.M{"_id": msg.ID}); err != nil {
 		return err
 	}

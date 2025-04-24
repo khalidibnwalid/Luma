@@ -9,10 +9,12 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
+const UserCollection = "users"
+
 type User struct {
 	ID             bson.ObjectID `bson:"_id" json:"id"`
 	Username       string        `bson:"username" json:"username"`
-	Email          string        `bson:"email" json:"email"`
+	Email          string        `bson:"email" json:"-"`
 	HashedPassword string        `bson:"hashed_password" json:"-"`
 	CreatedAt      int64         `bson:"created_at" json:"createdAt"`
 	UpdatedAt      int64         `bson:"updated_at" json:"updatedAt"`
@@ -61,7 +63,7 @@ func (u *User) Create(db *mongo.Database, ctx context.Context) error {
 	u.CreatedAt = time.Now().Unix()
 	u.UpdatedAt = time.Now().Unix()
 
-	coll := db.Collection("users")
+	coll := db.Collection(UserCollection)
 	if _, err := coll.InsertOne(ctx, u); err != nil {
 		return err
 	}
@@ -71,7 +73,7 @@ func (u *User) Create(db *mongo.Database, ctx context.Context) error {
 
 // You can provide ID as a parameter or in the struct
 func (u *User) FindByUsername(db *mongo.Database, ctx context.Context, username ...string) error {
-	coll := db.Collection("users")
+	coll := db.Collection(UserCollection)
 	var _username string
 
 	if len(username) > 0 {
@@ -88,7 +90,7 @@ func (u *User) FindByUsername(db *mongo.Database, ctx context.Context, username 
 
 // You can provide Email as a parameter or in the struct
 func (u *User) FindByEmail(db *mongo.Database, ctx context.Context, email ...string) error {
-	coll := db.Collection("users")
+	coll := db.Collection(UserCollection)
 	var _email string
 
 	if len(email) > 0 {
@@ -104,7 +106,7 @@ func (u *User) FindByEmail(db *mongo.Database, ctx context.Context, email ...str
 }
 
 func (u *User) FindByID(db *mongo.Database, ctx context.Context, id ...string) error {
-	coll := db.Collection("users")
+	coll := db.Collection(UserCollection)
 
 	var (
 		objId bson.ObjectID
@@ -128,7 +130,7 @@ func (u *User) FindByID(db *mongo.Database, ctx context.Context, id ...string) e
 
 func (u *User) Update(db *mongo.Database, ctx context.Context) error {
 	u.UpdatedAt = time.Now().Unix()
-	coll := db.Collection("users")
+	coll := db.Collection(UserCollection)
 	if _, err := coll.UpdateOne(ctx, bson.M{"_id": u.ID}, bson.M{"$set": u}); err != nil {
 		return err
 	}
@@ -136,7 +138,7 @@ func (u *User) Update(db *mongo.Database, ctx context.Context) error {
 }
 
 func (u *User) Delete(db *mongo.Database, ctx context.Context) error {
-	coll := db.Collection("users")
+	coll := db.Collection(UserCollection)
 	if _, err := coll.DeleteOne(ctx, bson.M{"_id": u.ID}); err != nil {
 		return err
 	}
