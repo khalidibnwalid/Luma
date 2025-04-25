@@ -1,15 +1,16 @@
+import ChatMesaage from "@/components/features/chat/chat-message"
 import EmojiSelector from "@/components/features/chat/emoji-selector"
+import ChatTopBar from "@/components/features/chat/top-bar"
+import ChatUsersSidebar from "@/components/features/chat/users-bar"
 import AppLayout from "@/components/layouts/app-layout"
 import ServerLayout, { useServerContext } from "@/components/layouts/server-layout"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { useIntersectionObserver } from "@/lib/hooks/useIntersectionObserver"
 import { useMessagesQuery } from "@/lib/queries/message"
 import type { MessageResponse } from "@/types/message"
-import type { User } from "@/types/user"
-import { Bell, Hash, PencilIcon, Plus, Search, SmilePlusIcon, TrashIcon, Users } from "lucide-react"
+import { Hash, Plus, SmilePlusIcon } from "lucide-react"
 import { useRouter } from "next/router"
 import { ReactElement, useEffect, useRef, useState } from "react"
 import useWebSocket from 'react-use-websocket'
@@ -21,7 +22,7 @@ export default function Page() {
     const activeRoom = rooms?.find(room => room.id === roomId)
 
     const { data: messages, isSuccess } = useMessagesQuery(roomId)
-    const socketUrl = 'ws://localhost:8080/v1/rooms/' + roomId + "?jwt=" + localStorage.getItem("token")
+    const socketUrl = 'ws://localhost:8080/v1/rooms/' + roomId
     const { sendMessage, lastMessage } = useWebSocket(socketUrl);
 
     const input = useRef<HTMLInputElement>(null);
@@ -29,13 +30,15 @@ export default function Page() {
     const allMessages = [...(messages ?? []), ...newMessageHistory.filter(msg => msg.roomId === roomId)]
 
     const {
-        isIntersecting: isSnappedToBottom,
+        isIntersecting: isBottomInView,
         ref: endOfScroll,
         setRef: bindEndOfScroll
     } = useIntersectionObserver({ threshold: 1 })
 
+    const isSnappedToBottom = endOfScroll && isBottomInView
+
     useEffect(() => {
-        if (endOfScroll && isSnappedToBottom) {
+        if (isSnappedToBottom) {
             endOfScroll.scrollIntoView({ behavior: "smooth" })
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -60,34 +63,12 @@ export default function Page() {
     }
 
     /// mocks
-    const onlineUsers = ["User 1", "User 2", "User 3", "User 4", "User 5"]
+    const mockUsers = ["User 1", "User 2", "User 3", "User 4", "User 5"]
 
     return (
         <>
-
             <section className="flex-1 flex flex-col">
-                <div className="h-12 flex items-center px-4">
-                    <div className="flex items-center">
-                        <Hash className="size-5 text-foreground/50 mr-1" />
-                        <h3 className="font-bold text-foreground capitalize">{activeRoom?.name}</h3>
-                    </div>
-                    <div className="ml-auto flex items-center gap-4">
-                        <Button variant="ghost" size="icon" className="size-8 rounded-full">
-                            <Bell className="size-5 text-foreground/50" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="size-8 rounded-full">
-                            <Users className="size-5 text-foreground/50" />
-                        </Button>
-                        <div className="relative">
-                            <Search className="size-5 text-foreground/50 absolute left-2 top-1/2 transform -translate-y-1/2" />
-                            <Input
-                                placeholder="Search"
-                                className="pl-9 h-8 bg-foreground/30 border-foreground/20 w-40 focus:w-60 transition-all duration-300"
-                            />
-                        </div>
-                    </div>
-                </div>
-
+                <ChatTopBar room={activeRoom} />
                 <ScrollArea className="flex-1 p-4 overflow-y-auto">
                     <div className="grid gap-y-3">
                         <div className="flex flex-col items-center justify-center text-center p-8">
@@ -102,6 +83,7 @@ export default function Page() {
 
                         {allMessages.map((msg, i) => (
                             <ChatMesaage
+                                id={msg.id}
                                 key={i + msg.content}
                                 user={msg.author}
                                 message={msg.content}
@@ -135,70 +117,10 @@ export default function Page() {
 
             </section>
 
-            <section className="w-60 p-3 hidden md:block">
-                <h3 className="text-xs font-semibold text-foreground/50 uppercase tracking-wide mb-2 py-2">Online — {onlineUsers.length}</h3>
-                <div className="space-y-2">
-                    {onlineUsers.map((user, i) => (
-                        <div key={user} className="flex items-center gap-2">
-                            <div className="relative">
-                                <Avatar className="size-8">
-                                    <AvatarImage src="" alt={`User ${user}`} />
-                                    <AvatarFallback>{user.charAt(0)}</AvatarFallback>
-                                </Avatar>
-                                <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 rounded-full"></span>
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium ">{user}</p>
-                                <p className="text-xs text-foreground/50">{i % 2 === 0 ? "Playing a game" : "Online"}</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </section>
+            <ChatUsersSidebar users={mockUsers} />
         </>
     )
 }
-
-function ChatMesaage({
-    user,
-    message,
-    date: unixEpochInSec
-}: {
-    user: User,
-    message: string,
-    date: number
-}) {
-    const date = new Date(unixEpochInSec * 1000)
-    return (
-        <article className="flex gap-3 group hover:bg-foreground/5 p-2 rounded-lg duration-200">
-            <Avatar className="size-10 mt-0.5">
-                {/* <AvatarImage src="" alt={user} /> */}
-                <AvatarFallback>{user.username.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-                <div className="flex items-baseline gap-x-1">
-                    <h4 className="font-medium">{user.username}</h4>
-                    <span className="ml-2 text-xs text-foreground/50">
-                        {new Intl.DateTimeFormat("en-US", {
-                            hour: "numeric",
-                            minute: "numeric"
-                        }).format(date)}
-                    </span>
-                    <button>
-                        <PencilIcon className=" text-foreground/50 " size={12} />
-                    </button>
-                    <button>
-                        <TrashIcon className=" text-foreground/50 " size={12} />
-                    </button>
-                </div>
-                <p className="text-foreground/85">
-                    {message}
-                </p>
-            </div>
-        </article>
-    )
-}
-
 
 Page.getLayout = function getLayout(page: ReactElement) {
     return (
