@@ -162,7 +162,6 @@ func (ctx *ServerContext) PostRoomToServer(w http.ResponseWriter, r *http.Reques
 		UserID:    userId,
 		RoomID:    room.ID.Hex(),
 		ServerID:  server.ID.Hex(),
-		IsCleared: true,
 	}
 
 	status.Create(ctx.Db, rCtx)

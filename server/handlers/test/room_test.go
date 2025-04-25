@@ -185,51 +185,6 @@ func TestGETRoom(t *testing.T) {
 func TestPatchRoomStatus(t *testing.T) {
 	ctx := testutil.NewTestingContext(t)
 
-	t.Run("Should update room status with isCleared", func(t *testing.T) {
-		user, _ := testutil.MockUser(t, ctx.Db)
-		room := testutil.MockRoom(t, ctx.Db, user.ID.Hex())
-		status := room.Status
-
-		// Mock the status with values to be updated
-		status.IsCleared = false
-		status.LastReadMsgID = "1234567890"
-		status.Update(ctx.Db, context.Background())
-
-		data := []byte(`{"isCleared":true}`)
-
-		r := httptest.NewRequest(http.MethodPatch, "/rooms/"+room.ID.Hex()+"/status", bytes.NewBuffer(data))
-		w := httptest.NewRecorder()
-		r = r.WithContext(context.WithValue(r.Context(), middlewares.CtxUserIDKey, user.ID.Hex()))
-		r.SetPathValue("id", room.ID.Hex())
-
-		ctx.PatchRoomStatus(w, r)
-
-		if w.Code != http.StatusNoContent {
-			t.Errorf("Expected status code %d, got %d", http.StatusNoContent, w.Code)
-		}
-		t.Log("statusMap", status)
-
-		err := status.FindByUserIdAndRoomId(ctx.Db, context.Background()) // refetch the status after update
-		if err != nil {
-			t.Fatalf("Error refreshing room status: %v", err)
-		}
-
-		statusMap := map[string]interface{}{
-			"roomId":        status.RoomID,
-			"userId":        status.UserID,
-			"lastReadMsgId": status.LastReadMsgID,
-			"isCleared":     status.IsCleared,
-		}
-
-		testutil.AssertInterface(t, map[string]interface{}{
-			"roomId":        room.ID.Hex(),
-			"userId":        user.ID.Hex(),
-			"lastReadMsgId": "",
-			"isCleared":     true,
-		}, statusMap)
-
-	})
-
 	t.Run("Should update room status with lastReadMsgId", func(t *testing.T) {
 		user, _ := testutil.MockUser(t, ctx.Db)
 		room := testutil.MockRoom(t, ctx.Db, user.ID.Hex())
@@ -259,14 +214,12 @@ func TestPatchRoomStatus(t *testing.T) {
 			"roomId":        status.RoomID,
 			"userId":        status.UserID,
 			"lastReadMsgId": status.LastReadMsgID,
-			"isCleared":     status.IsCleared,
 		}
 
 		testutil.AssertInterface(t, map[string]interface{}{
 			"roomId":        room.ID.Hex(),
 			"userId":        user.ID.Hex(),
 			"lastReadMsgId": msg.ID.Hex(),
-			"isCleared":     false,
 		}, statusMap)
 	})
 }

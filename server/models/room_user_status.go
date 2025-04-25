@@ -16,10 +16,6 @@ type RoomUserStatus struct {
 	ServerID      string        `bson:"server_id" json:"serverId"`
 	RoomID        string        `bson:"room_id" json:"roomId"`
 	LastReadMsgID string        `bson:"last_read_msg_id" json:"lastReadMsgId"`
-	// IsCleared indicates that the user has read all messages in the room,
-	// thus each new messge will reset the LastReadMsgID to the new message ID.
-	// if false, the LastReadMsgID won't be updated when a new message arrives
-	IsCleared bool `bson:"is_cleared" json:"isCleared"`
 }
 
 type RoomWithStatus struct {
@@ -65,7 +61,7 @@ func (r *RoomUserStatus) Create(db *mongo.Database, ctx context.Context) error {
 	return nil
 }
 
-// only update the LastReadMsgID and IsCleared fields
+// only updates the LastReadMsgID fields
 func (r *RoomUserStatus) Update(db *mongo.Database, ctx context.Context) error {
 	coll := db.Collection(RoomUserStatusCollection)
 
@@ -73,11 +69,32 @@ func (r *RoomUserStatus) Update(db *mongo.Database, ctx context.Context) error {
 	update := bson.M{
 		"$set": bson.M{
 			"last_read_msg_id": r.LastReadMsgID,
-			"is_cleared":       r.IsCleared,
 		},
 	}
 
 	if _, err := coll.UpdateOne(ctx, filter, update); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// needs room_id and last_read_msg_id fields to be set in the struct
+func (r *RoomUserStatus) UpdateAllUsersStatus(db *mongo.Database, ctx context.Context, users []string) error {
+	coll := db.Collection(ServerUserStatusCollection)
+
+	update := bson.M{
+		"$set": bson.M{
+			"last_read_msg_id": r.LastReadMsgID,
+		},
+	}
+
+	filter := bson.M{
+		"user_id": bson.M{"$in": users},
+		"room_id": r.RoomID,
+	}
+
+	if _, err := coll.UpdateMany(ctx, filter, update); err != nil {
 		return err
 	}
 

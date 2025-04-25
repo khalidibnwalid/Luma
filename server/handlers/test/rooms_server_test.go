@@ -141,7 +141,6 @@ func TestGetRoomsOfServer(t *testing.T) {
 							"userId":    user.ID.Hex(),
 							"serverId":  server.ID.Hex(),
 							"roomId":    originalRoom.ID.Hex(),
-							"isCleared": originalRoom.Status.IsCleared,
 						}, status)
 					}
 				}
@@ -213,7 +212,6 @@ func TestPostRoomToServer(t *testing.T) {
 				"userId":    user.ID.Hex(),
 				"serverId":  server.ID.Hex(),
 				"roomId":    resBody["id"],
-				"isCleared": true,
 			},
 		}, resBody)
 

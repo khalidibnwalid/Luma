@@ -57,7 +57,6 @@ func MockRoom(t *testing.T, db *mongo.Database, userId string, server ...*models
 		UserID:    userId,
 		RoomID:    room.ID.Hex(),
 		ServerID:  _server.ID.Hex(),
-		IsCleared: true,
 	}
 
 	status.Create(db, context.Background())

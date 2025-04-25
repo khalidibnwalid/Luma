@@ -119,11 +119,10 @@ func (ctx *ServerContext) PatchRoomStatus(w http.ResponseWriter, r *http.Request
 
 	var body struct {
 		LastReadMsgID string `json:"lastReadMsgId"`
-		IsCleared     bool   `json:"isCleared"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		newErrorResponse(w, http.StatusBadRequest, EnumBadRequest, "LastReadMsgId and IsCleared are required")
+		newErrorResponse(w, http.StatusBadRequest, EnumBadRequest, "LastReadMsgId is required")
 		return
 	}
 
@@ -133,18 +132,12 @@ func (ctx *ServerContext) PatchRoomStatus(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if body.IsCleared == status.IsCleared ||body.LastReadMsgID == status.LastReadMsgID {
+	if body.LastReadMsgID == status.LastReadMsgID {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
-	if len(body.LastReadMsgID) > 0 {
-		status.IsCleared = false
-		status.LastReadMsgID = body.LastReadMsgID
-	} else {
-		status.IsCleared = true
-		status.LastReadMsgID = ""
-	}
+	status.LastReadMsgID = body.LastReadMsgID
 
 	if err := status.Update(ctx.Db, rCtx); err != nil {
 		newErrorResponse(w, http.StatusInternalServerError, EnumInternalServerError)
