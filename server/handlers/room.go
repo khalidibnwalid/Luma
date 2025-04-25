@@ -24,14 +24,14 @@ func (ctx *ServerContext) validateRoomID(w http.ResponseWriter, r *http.Request)
 	roomID := r.PathValue("id")
 	if roomID == "" {
 		w.Header().Set("Content-Type", "application/json")
-		http.Error(w, "Room ID is required", http.StatusBadRequest)
+		newErrorResponse(w, http.StatusBadRequest, EnumBadRequest, "Room ID is required")
 		return &models.Room{}, nil
 	}
 
 	roomData := models.Room{}
 	if err := roomData.FindById(ctx.Db, rCtx, roomID); err != nil {
 		w.Header().Set("Content-Type", "application/json")
-		http.Error(w, "Room not found", http.StatusNotFound)
+		newErrorResponse(w, http.StatusNotFound, EnumNotFound, "Room not found")
 		return &models.Room{}, nil
 	}
 
@@ -106,4 +106,50 @@ func (ctx *ServerContext) GETRoomMessages(w http.ResponseWriter, r *http.Request
 	json, _ := json.Marshal(messages)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(json)
+}
+
+func (ctx *ServerContext) PatchRoomStatus(w http.ResponseWriter, r *http.Request) {
+	rCtx := r.Context()
+	room, err := ctx.validateRoomID(w, r)
+	if err != nil {
+		return
+	}
+
+	userId := rCtx.Value(middlewares.CtxUserIDKey).(string)
+
+	var body struct {
+		LastReadMsgID string `json:"lastReadMsgId"`
+		IsCleared     bool   `json:"isCleared"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		newErrorResponse(w, http.StatusBadRequest, EnumBadRequest, "LastReadMsgId and IsCleared are required")
+		return
+	}
+
+	status := models.NewRoomUserStatus().WithUserID(userId).WithRoomID(room.ID.Hex())
+	if err := status.FindByUserIdAndRoomId(ctx.Db, rCtx); err != nil {
+		newErrorResponse(w, http.StatusNotFound, EnumNotFound, "Room status not found")
+		return
+	}
+
+	if body.IsCleared == status.IsCleared ||body.LastReadMsgID == status.LastReadMsgID {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	if len(body.LastReadMsgID) > 0 {
+		status.IsCleared = false
+		status.LastReadMsgID = body.LastReadMsgID
+	} else {
+		status.IsCleared = true
+		status.LastReadMsgID = ""
+	}
+
+	if err := status.Update(ctx.Db, rCtx); err != nil {
+		newErrorResponse(w, http.StatusInternalServerError, EnumInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

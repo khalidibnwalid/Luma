@@ -41,6 +41,8 @@ func main() {
 	// room routes
 	authedRoutes.HandleFunc("GET /rooms/{id}/messages", ctx.GETRoomMessages)
 	authedRoutes.HandleFunc("/rooms/{id}", ctx.WSRoom(topicStore))
+	// room status routes
+	authedRoutes.HandleFunc("PATCH /rooms/{id}/status", ctx.PatchRoomStatus)
 
 	// user routes
 	authedRoutes.HandleFunc("GET /users", ctx.GetUser)

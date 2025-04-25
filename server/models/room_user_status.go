@@ -65,6 +65,25 @@ func (r *RoomUserStatus) Create(db *mongo.Database, ctx context.Context) error {
 	return nil
 }
 
+// only update the LastReadMsgID and IsCleared fields
+func (r *RoomUserStatus) Update(db *mongo.Database, ctx context.Context) error {
+	coll := db.Collection(RoomUserStatusCollection)
+
+	filter := bson.M{"_id": r.ID}
+	update := bson.M{
+		"$set": bson.M{
+			"last_read_msg_id": r.LastReadMsgID,
+			"is_cleared":       r.IsCleared,
+		},
+	}
+
+	if _, err := coll.UpdateOne(ctx, filter, update); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (r *RoomUserStatus) Delete(db *mongo.Database, ctx context.Context) error {
 	coll := db.Collection(RoomUserStatusCollection)
 
@@ -94,6 +113,21 @@ func (r *RoomUserStatus) FindById(db *mongo.Database, ctx context.Context, id ..
 
 	filter := bson.M{"_id": objId}
 	err = coll.FindOne(ctx, filter).Decode(r)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *RoomUserStatus) FindByUserIdAndRoomId(db *mongo.Database, ctx context.Context) error {
+	coll := db.Collection(RoomUserStatusCollection)
+
+	filter := bson.M{
+		"user_id": r.UserID,
+		"room_id": r.RoomID,
+	}
+	err := coll.FindOne(ctx, filter).Decode(&r)
 	if err != nil {
 		return err
 	}
