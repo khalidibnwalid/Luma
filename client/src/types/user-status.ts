@@ -4,7 +4,6 @@ export interface RoomUserStatus {
     userId: string
     roomId: string
     lastReadMsgId: string
-    isCleared: boolean
 }
 
 export interface ServerUserStatus {

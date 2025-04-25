@@ -8,13 +8,21 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { useIntersectionObserver } from "@/lib/hooks/useIntersectionObserver"
+import http from "@/lib/http"
 import { useMessagesQuery } from "@/lib/queries/message"
+import { mutateRoomsCache } from "@/lib/queries/rooms"
 import type { MessageResponse } from "@/types/message"
+import { RoomUserStatus } from "@/types/user-status"
+import { useMutation } from "@tanstack/react-query"
 import { Hash, Plus, SmilePlusIcon } from "lucide-react"
 import { useRouter } from "next/router"
 import { ReactElement, useEffect, useRef, useState } from "react"
 import useWebSocket from 'react-use-websocket'
 
+const SERVERS_URL = "http://localhost:8080/v1/rooms"
+
+
+//TODO scroll to the lastReadMsgId on load
 export default function Page() {
     const router = useRouter()
     const roomId = router.query.roomId as string
@@ -29,6 +37,18 @@ export default function Page() {
     const [newMessageHistory, setMessageHistory] = useState<MessageResponse[]>([]);
     const allMessages = [...(messages ?? []), ...newMessageHistory.filter(msg => msg.roomId === roomId)]
 
+    const [lastVisibleMessageId, setLastVisibleMessageId] = useState<string>(activeRoom?.status?.lastReadMsgId || "")
+
+    const mutateRoom = useMutation({
+        mutationFn: () =>
+            http(SERVERS_URL + '/' + roomId + '/status').patch({ lastReadMsgId: lastVisibleMessageId }),
+        onSuccess: () => mutateRoomsCache(activeServer.id, activeRoom?.id).partialUpdate({
+            status: {
+                lastReadMsgId: lastVisibleMessageId || "",
+            } as RoomUserStatus // :DDDDD
+        }),
+    })
+
     const {
         isIntersecting: isBottomInView,
         ref: endOfScroll,
@@ -38,22 +58,31 @@ export default function Page() {
     const isSnappedToBottom = endOfScroll && isBottomInView
 
     useEffect(() => {
-        if (isSnappedToBottom) {
-            endOfScroll.scrollIntoView({ behavior: "smooth" })
-        }
+        if (!isSnappedToBottom) return
+        endOfScroll.scrollIntoView({ behavior: "smooth" })
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [newMessageHistory, messages])
 
     useEffect(() => {
-        if (lastMessage !== null) setMessageHistory((prev) => prev.concat(JSON.parse(lastMessage.data)));
+        if (lastMessage === null) return
+
+        const data = JSON.parse(lastMessage.data) as MessageResponse
+        setMessageHistory((prev) => prev.concat(data))
+        markAsUnread(data.id)
     }, [lastMessage]);
 
     if (!activeRoom) return <div>Room not found</div>
     if (!isSuccess) return <div>Server not found</div>
 
+    function markAsUnread(msgId: string) {
+        setLastVisibleMessageId(msgId)
+        mutateRoom.mutate()
+    }
+
     function sendFormattedMessage() {
         const value = input.current?.value
         if (!value) return
+
         sendMessage(JSON.stringify({ content: value } as MessageResponse))
         input.current!.value = ""
     }
@@ -69,6 +98,14 @@ export default function Page() {
         <>
             <section className="flex-1 flex flex-col">
                 <ChatTopBar room={activeRoom} />
+                {/* {(lastVisibleMessageId === activeRoom?.status?.lastReadMsgId && !isSnappedToBottom) &&
+                    <button
+                        className="py-1 w-full text-center rounded-b-2xl bg-foreground/10 hover:bg-foreground/15 duration-150"
+                        onClick={() => endOfScroll?.scrollIntoView({ behavior: "smooth" })}
+                    >
+                        Mark As Read
+                    </button>
+                } */}
                 <ScrollArea className="flex-1 p-4 overflow-y-auto">
                     <div className="grid gap-y-3">
                         <div className="flex flex-col items-center justify-center text-center p-8">
@@ -82,13 +119,18 @@ export default function Page() {
                         </div>
 
                         {allMessages.map((msg, i) => (
-                            <ChatMesaage
-                                id={msg.id}
-                                key={i + msg.content}
-                                user={msg.author}
-                                message={msg.content}
-                                date={msg.createdAt}
-                            />
+                            <>
+                                {(msg.id === lastVisibleMessageId && i <= (allMessages.length - 5))
+                                    && <span className="w-full text-center rounded-2xl border-foreground/10 border-t-4"></span>}
+                                <ChatMesaage
+                                    id={msg.id}
+                                    key={i + msg.content}
+                                    user={msg.author}
+                                    message={msg.content}
+                                    date={msg.createdAt}
+                                    markAsUnreadFn={markAsUnread}
+                                />
+                            </>
                         ))}
 
                         <div ref={bindEndOfScroll}></div>

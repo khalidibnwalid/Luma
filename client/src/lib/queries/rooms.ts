@@ -37,9 +37,9 @@ export function mutateRoomsCache(serverId: string, roomId?: string) {
         queryClient.setQueryData(key, room);
     }
 
-    function remove(roomId: string) {
+    function remove(roomID?: string) {
         queryClient.setQueryData(allRooms, (old: Room[]) => {
-            return old.filter((room) => room.id !== roomId)
+            return old.filter((room) => room.id !== (roomID || roomId))
         });
         queryClient.setQueryData(key, undefined);
     }
@@ -51,9 +51,18 @@ export function mutateRoomsCache(serverId: string, roomId?: string) {
         queryClient.setQueryData(key, room);
     }
 
+    function partialUpdate(room: Partial<Room>) {
+        queryClient.setQueryData(allRooms, (old: Room[]) => {
+            return old.map((r) => r.id === roomId ? { ...r, ...room } : r)
+        })
+        queryClient.setQueryData(key, room);
+    }
+
+
     return {
         add,
         remove,
         update,
+        partialUpdate,
     }
 }
