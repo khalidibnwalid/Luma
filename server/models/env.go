@@ -8,10 +8,13 @@ import (
 )
 
 type Env struct {
+	// TODO delete this
 	MongoUri  string
 	DbName    string
+	//
 	Port      string
 	JwtSecret string
+	PostgresUri string
 }
 
 func GetEnv() *Env {
@@ -20,15 +23,13 @@ func GetEnv() *Env {
 		log.Fatal("Error loading .env file")
 	}
 
-	mongoUri := os.Getenv("MONGO_URI")
-	dbName := os.Getenv("DB_NAME")
-	port := ":" + os.Getenv("PORT")
-	jwtSecret := os.Getenv("JWT_SECRET")
-
 	return &Env{
-		MongoUri:  mongoUri,
-		DbName:    dbName,
-		Port:      port,
-		JwtSecret: jwtSecret,
+		// TODO delete this
+		MongoUri:  os.Getenv("MONGO_URI"),
+		DbName:    os.Getenv("DB_NAME"),
+		//
+		Port:      ":" + os.Getenv("PORT"),
+		JwtSecret: os.Getenv("JWT_SECRET"),
+		PostgresUri: os.Getenv("POSTGRES_URI"),
 	}
 }

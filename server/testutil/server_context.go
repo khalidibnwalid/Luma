@@ -18,6 +18,7 @@ func NewTestingContext(t *testing.T) handlers.ServerContext {
 		err    error
 	)
 
+	// TODO delete this
 	if client, err = core.CreateMongoClient("mongodb://root:example@localhost:27017/"); err != nil {
 		t.Fatalf("MongoDB connection error: %v", err)
 	}
@@ -26,10 +27,20 @@ func NewTestingContext(t *testing.T) handlers.ServerContext {
 		t.Fatalf("MongoDB ping error: %v", err)
 	}
 
+	db, err := core.CreateClient("postgres://admin:123qweasd@localhost:5432/testingLuma?sslmode=disable&TimeZone=UTC")
+	if err != nil {
+		t.Fatalf("Postgres connection error: %v", err)
+	}
+
+	if err = db.Client.Exec("SELECT 1").Error; err != nil {
+		t.Fatalf("Postgres ping error: %v", err)
+	}
+
 	ctx := &handlers.ServerContext{
 		Db:        client.Database("Testing"),
 		Client:    client,
 		JwtSecret: "SECRET",
+		Database:  db,
 	}
 
 	t.Cleanup(func() {
