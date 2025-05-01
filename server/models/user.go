@@ -102,6 +102,6 @@ func (u *User) Update(db *gorm.DB) error {
 }
 
 func (u *User) Delete(db *gorm.DB) error {
-	result := db.Delete(u)
+	result := db.Unscoped().Delete(u)
 	return result.Error
 }

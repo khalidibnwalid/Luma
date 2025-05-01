@@ -1,185 +1,87 @@
 package models
 
 import (
-	"context"
-
-	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo"
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
-
-const ServerUserStatusCollection = "server_user_status"
 
 // ServerUserStatus tracks the status of a user in a server
 type ServerUserStatus struct {
-	ID       bson.ObjectID `bson:"_id" json:"id"`
-	UserID   string        `bson:"user_id" json:"userId"`
-	ServerID string        `bson:"server_id" json:"serverId"`
-	Nickname string        `bson:"nickname" json:"nickname"`
-	Roles    []string      `bson:"roles" json:"roles"`
+	gorm.Model
+	UserID   uuid.UUID `gorm:"column:user_id;type:uuid;index" json:"userId"`
+	ServerID uuid.UUID `gorm:"column:server_id;type:uuid;index" json:"serverId"`
+	Nickname string    `gorm:"column:nickname" json:"nickname"`
+	Roles    []string  `gorm:"type:text[];column:roles" json:"roles"`
+}
+
+func (ServerUserStatus) TableName() string {
+	return "server_user_status"
 }
 
 type RoomsServerWithStatus struct {
-	*RoomsServer
-	Status ServerUserStatus `json:"status"`
+	*RoomsServer `gorm:"embedded"`
+	Status       ServerUserStatus `gorm:"embedded" json:"status"`
 }
 
 func NewServerUserStatus() *ServerUserStatus {
 	return &ServerUserStatus{}
 }
 
-func (s *ServerUserStatus) WithHexID(id string) *ServerUserStatus {
-	objID, _ := bson.ObjectIDFromHex(id)
-	s.ID = objID
-	return s
-}
-
-func (s *ServerUserStatus) WithObjID(id bson.ObjectID) *ServerUserStatus {
-	s.ID = id
-	return s
-}
-
-// The ID should in HEX format like "xxxxxxxxxxxxxxxxxxxxxxxx" not ObjectID("xxxxxxxxxxxxxxxxxxxxxxxx")
-func (s *ServerUserStatus) WithUserID(userID string) *ServerUserStatus {
+// The ID should be in UUID format
+func (s *ServerUserStatus) WithUserID(userID uuid.UUID) *ServerUserStatus {
 	s.UserID = userID
 	return s
 }
 
-// The ID should in HEX format like "xxxxxxxxxxxxxxxxxxxxxxxx" not ObjectID("xxxxxxxxxxxxxxxxxxxxxxxx")
-func (s *ServerUserStatus) WithServerID(serverID string) *ServerUserStatus {
+// The ID should be in UUID format
+func (s *ServerUserStatus) WithServerID(serverID uuid.UUID) *ServerUserStatus {
 	s.ServerID = serverID
 	return s
 }
 
-func (s *ServerUserStatus) Create(db *mongo.Database, ctx context.Context) error {
-	s.ID = bson.NewObjectID()
-
-	coll := db.Collection(ServerUserStatusCollection)
-	if _, err := coll.InsertOne(ctx, s); err != nil {
-		return err
-	}
-
-	return nil
+func (s *ServerUserStatus) WithNickname(nickname string) *ServerUserStatus {
+	s.Nickname = nickname
+	return s
 }
 
-func (s *ServerUserStatus) Update(db *mongo.Database, ctx context.Context) error {
-	coll := db.Collection(ServerUserStatusCollection)
-
-	update := bson.M{
-		"$set": bson.M{
-			"nickname": s.Nickname,
-			"roles":    s.Roles,
-		},
-	}
-
-	filter := bson.M{"_id": s.ID}
-	_, err := coll.UpdateOne(ctx, filter, update)
-	if err != nil {
-		return err
-	}
-
-	return nil
+func (s *ServerUserStatus) WithRoles(roles []string) *ServerUserStatus {
+	s.Roles = roles
+	return s
 }
 
-func (s *ServerUserStatus) Delete(db *mongo.Database, ctx context.Context) error {
-	coll := db.Collection(ServerUserStatusCollection)
-	filter := bson.M{"_id": s.ID}
-	_, err := coll.DeleteOne(ctx, filter)
-	if err != nil {
-		return err
-	}
-
-	return nil
+func (s *ServerUserStatus) Create(db *gorm.DB) error {
+	result := db.Create(s)
+	return result.Error
 }
 
-func (s *ServerUserStatus) FindById(db *mongo.Database, ctx context.Context, id ...string) error {
-	coll := db.Collection(ServerUserStatusCollection)
-
-	var (
-		objId bson.ObjectID
-		err   error
-	)
-
-	if len(id) > 0 {
-		objId, err = bson.ObjectIDFromHex(id[0])
-		if err != nil {
-			return err
-		}
-	} else {
-		objId = s.ID
-	}
-
-	filter := bson.M{"_id": objId}
-	err = coll.FindOne(ctx, filter).Decode(s)
-	if err != nil {
-		return err
-	}
-
-	return nil
+func (s *ServerUserStatus) Update(db *gorm.DB) error {
+	result := db.Save(s)
+	return result.Error
 }
 
-func (s *ServerUserStatus) GetServers(db *mongo.Database, ctx context.Context) ([]RoomsServerWithStatus, error) {
-	coll := db.Collection(RoomsServerCollection)
+// use user ID and server ID to delete the status
+func (s *ServerUserStatus) Delete(db *gorm.DB) error {
+	result := db.Unscoped().Where("user_id = ? AND server_id = ?", s.UserID, s.ServerID).Delete(s)
+	return result.Error
+}
 
-	pipeline := []bson.M{
-		{
-			"$lookup": bson.M{
-				"from": ServerUserStatusCollection,
-				"let": bson.M{
-					"serverId": "$_id",
-				},
-				"pipeline": []bson.M{
-					{
-						"$match": bson.M{
-							"$expr": bson.M{
-								"$and": bson.A{
-									bson.M{"$eq": bson.A{bson.M{"$toObjectId": "$server_id"}, "$$serverId"}},
-									bson.M{"$eq": bson.A{"$user_id", s.UserID}},
-								},
-							},
-						},
-					},
-				},
-				"as": "status",
-			},
-		},
-		{
-			"$unwind": bson.M{
-				"path": "$status",
-			},
-		},
-		{
-			"$match": bson.M{
-				"status": bson.M{"$ne": nil},
-			},
-		},
-		{ // for marshalling the RoomsServerWithStatus struct, which has servers as an embedded struct
-			"$project": bson.M{
-				"_id":    0,
-				"status": 1,
-				"roomsserver": bson.M{
-					"$mergeObjects": bson.A{
-						bson.M{"status": 0},
-						"$$ROOT",
-					},
-				},
-			},
-		},
-	}
+// by user and server ID
+func (s *ServerUserStatus) Find(db *gorm.DB) error {
+	result := db.Model(&ServerUserStatus{}).
+		Where("user_id = ? AND server_id = ?", s.UserID, s.ServerID).
+		First(s)
+	return result.Error
+}
 
-	var (
-		err    error
-		cursor *mongo.Cursor
-	)
+func (s *ServerUserStatus) GetServers(db *gorm.DB) ([]RoomsServerWithStatus, error) {
+	var serversWithStatus []RoomsServerWithStatus
 
-	if cursor, err = coll.Aggregate(ctx, pipeline); err != nil {
-		return nil, err
-	}
-	defer cursor.Close(ctx)
+	// Join the RoomsServer table with ServerUserStatus
+	result := db.Model(&RoomsServer{}).
+		Joins("JOIN server_user_status ON rooms_servers.id = server_user_status.server_id").
+		Where("server_user_status.user_id = ?", s.UserID).
+		Select("rooms_servers.*, server_user_status.*").
+		Find(&serversWithStatus)
 
-	var servers []RoomsServerWithStatus
-	if err = cursor.All(ctx, &servers); err != nil {
-		return nil, err
-	}
-
-	return servers, nil
+	return serversWithStatus, result.Error
 }

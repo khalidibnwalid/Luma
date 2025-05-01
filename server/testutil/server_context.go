@@ -33,7 +33,7 @@ func NewTestingContext(t *testing.T) handlers.ServerContext {
 		t.Fatalf("Postgres connection error: %v", err)
 	}
 
-	db.Client.AutoMigrate(&models.User{})
+	db.Client.AutoMigrate(&models.User{}, &models.RoomsServer{}, &models.ServerUserStatus{}, &models.Room{}, &models.RoomsServerWithStatus{} ,&models.Message{})
 
 	if err = db.Client.Exec("SELECT 1").Error; err != nil {
 		t.Fatalf("Postgres ping error: %v", err)

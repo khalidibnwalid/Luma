@@ -1,72 +1,100 @@
 package models
 
 import (
-	"context"
 	"time"
 
-	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo"
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
-const MessageCollection = "messages"
-
 type Message struct {
-	ID        bson.ObjectID `bson:"_id" json:"id"`
-	AuthorID  string        `bson:"author_id" json:"authorId"`
-	ServerID  string        `bson:"server_id" json:"serverId"`
-	RoomID    string        `bson:"room_id" json:"roomId"`
-	Content   string        `bson:"content" json:"content"`
-	CreatedAt int64         `bson:"created_at" json:"createdAt"`
-	UpdatedAt int64         `bson:"updated_at" json:"updatedAt"`
+	gorm.Model
+	ID        uuid.UUID `gorm:"primarykey;type:uuid;default:gen_random_uuid()" json:"id"`
+	AuthorID  uuid.UUID `gorm:"column:author_id;type:uuid;index" json:"authorId"`
+	ServerID  uuid.UUID `gorm:"column:server_id;type:uuid;index" json:"serverId"`
+	RoomID    uuid.UUID `gorm:"column:room_id;type:uuid;index" json:"roomId"`
+	Content   string    `gorm:"column:content" json:"content"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 	// Author shouldn't be stored in the database, only AuthorID
-	Author User `bson:"author" json:"author"`
+	Author User `gorm:"-" json:"author"`
+}
+
+// TableName specifies the table name for Message
+func (Message) TableName() string {
+	return "messages"
 }
 
 func NewMessage() *Message {
 	return &Message{}
 }
 
-func (msg *Message) WithMessage(message string) *Message {
-	msg.Content = message
+func (msg *Message) WithContent(content string) *Message {
+	msg.Content = content
 	return msg
 }
 
-func (msg *Message) WithAuthorID(authorID string) *Message {
+func (msg *Message) WithID(id uuid.UUID) *Message {
+	msg.ID = id
+	return msg
+}
+
+func (msg *Message) WithAuthorID(authorID uuid.UUID) *Message {
 	msg.AuthorID = authorID
 	return msg
 }
 
-func (msg *Message) WithRoomID(roomID string) *Message {
+func (msg *Message) WithServerID(serverID uuid.UUID) *Message {
+	msg.ServerID = serverID
+	return msg
+}
+
+func (msg *Message) WithRoomID(roomID uuid.UUID) *Message {
 	msg.RoomID = roomID
 	return msg
 }
 
-func (msg *Message) Create(db *mongo.Database, ctx context.Context) error {
-	msg.ID = bson.NewObjectID()
-	msg.CreatedAt = time.Now().Unix()
-	msg.UpdatedAt = time.Now().Unix()
-
-	coll := db.Collection(MessageCollection)
-	if _, err := coll.InsertOne(ctx, msg); err != nil {
-		return err
-	}
-
-	return nil
+func (msg *Message) Create(db *gorm.DB) error {
+	result := db.Create(msg)
+	return result.Error
 }
 
-func (msg *Message) Update(db *mongo.Database, ctx context.Context) error {
-	msg.UpdatedAt = time.Now().Unix()
-	coll := db.Collection(MessageCollection)
-	if _, err := coll.UpdateOne(ctx, bson.M{"_id": msg.ID}, bson.M{"$set": msg}); err != nil {
-		return err
-	}
-	return nil
+func (msg *Message) Update(db *gorm.DB) error {
+	result := db.Save(msg)
+	return result.Error
 }
 
-func (msg *Message) Delete(db *mongo.Database, ctx context.Context) error {
-	coll := db.Collection(MessageCollection)
-	if _, err := coll.DeleteOne(ctx, bson.M{"_id": msg.ID}); err != nil {
-		return err
+func (msg *Message) Delete(db *gorm.DB) error {
+	result := db.Unscoped().Delete(msg)
+	return result.Error
+}
+
+func (msg *Message) FindByID(db *gorm.DB, id ...uuid.UUID) error {
+	var _id uuid.UUID
+
+	if len(id) > 0 {
+		_id = id[0]
+	} else {
+		_id = msg.ID
 	}
-	return nil
+
+	result := db.First(msg, _id)
+	return result.Error
+}
+
+// GetMessagesByRoom retrieves messages for a specific room with optional pagination
+func (msg *Message) GetMessagesByRoom(db *gorm.DB, roomID uuid.UUID, limit int) ([]Message, error) {
+	var messages []Message
+
+	if limit <= 0 {
+		limit = 50 // Default limit
+	}
+
+	result := db.Preload("Author").
+		Where("room_id = ?", roomID).
+		Order("created_at DESC").
+		Limit(limit).
+		Find(&messages)
+
+	return messages, result.Error
 }

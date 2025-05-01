@@ -1,164 +1,77 @@
 package models
 
 import (
-	"context"
 	"time"
 
-	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo"
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
-const RoomsServerCollection = "rooms_server"
-
 type RoomsServer struct {
-	ID        bson.ObjectID `bson:"_id" json:"id"`
-	OwnerID   string        `bson:"owner_id" json:"ownerId"`
-	Name      string        `bson:"name" json:"name"`
-	CreatedAt int64         `bson:"created_at" json:"createdAt"`
-	UpdatedAt int64         `bson:"updated_at" json:"updatedAt"`
+	gorm.Model
+	ID        uuid.UUID `gorm:"primarykey;type:uuid;default:gen_random_uuid()" json:"id"`
+	OwnerID   uuid.UUID `gorm:"column:owner_id;type:uuid" json:"ownerId"`
+	Name      string    `gorm:"column:name" json:"name"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
-func NewRoomsServer(rs ...RoomsServer) *RoomsServer {
-	if len(rs) > 0 {
-		return &rs[0]
-	}
+func NewRoomsServer() *RoomsServer {
 	return &RoomsServer{}
 }
 
-func (rs *RoomsServer) WithHexID(id string) *RoomsServer {
-	objId, _ := bson.ObjectIDFromHex(id)
-	rs.ID = objId
-	return rs
-}
-
-func (rs *RoomsServer) WithObjID(id bson.ObjectID) *RoomsServer {
+func (rs *RoomsServer) WithID(id uuid.UUID) *RoomsServer {
 	rs.ID = id
 	return rs
 }
 
-// The ID should in HEX format like "xxxxxxxxxxxxxxxxxxxxxxxx" not ObjectID("xxxxxxxxxxxxxxxxxxxxxxxx")
-func (rs *RoomsServer) WithOwnerID(ownerID string) *RoomsServer {
+func (rs *RoomsServer) WithOwnerID(ownerID uuid.UUID) *RoomsServer {
 	rs.OwnerID = ownerID
 	return rs
 }
 
-func (rs *RoomsServer) Create(db *mongo.Database, ctx context.Context) error {
-	rs.ID = bson.NewObjectID()
-	rs.CreatedAt = time.Now().Unix()
-	rs.UpdatedAt = time.Now().Unix()
-
-	coll := db.Collection(RoomsServerCollection)
-	if _, err := coll.InsertOne(ctx, rs); err != nil {
-		return err
-	}
-
-	return nil
+func (rs *RoomsServer) WithName(name string) *RoomsServer {
+	rs.Name = name
+	return rs
 }
 
-// You can provide the ID as a parameter or use the ID from the struct
-func (rs *RoomsServer) FindById(db *mongo.Database, ctx context.Context, id ...string) error {
-	coll := db.Collection(RoomsServerCollection)
+func (rs *RoomsServer) Create(db *gorm.DB) error {
+	result := db.Create(rs)
+	return result.Error
+}
 
-	var (
-		objId bson.ObjectID
-		err   error
-	)
+func (rs *RoomsServer) FindByID(db *gorm.DB, id ...uuid.UUID) error {
+	var _id uuid.UUID
+
 	if len(id) > 0 {
-		if objId, err = bson.ObjectIDFromHex(id[0]); err != nil {
-			return err
-		}
+		_id = id[0]
 	} else {
-		objId = rs.ID
+		_id = rs.ID
 	}
 
-	if err := coll.FindOne(ctx, bson.M{"_id": objId}).Decode(&rs); err != nil {
-		return err
-	}
-	return nil
+	result := db.First(rs, _id)
+	return result.Error
 }
 
-func (rs *RoomsServer) Update(db *mongo.Database, ctx context.Context) error {
-	rs.UpdatedAt = time.Now().Unix()
-	coll := db.Collection(RoomsServerCollection)
-	if _, err := coll.UpdateOne(ctx, bson.M{"_id": rs.ID}, bson.M{"$set": rs}); err != nil {
-		return err
-	}
-	return nil
+func (rs *RoomsServer) Update(db *gorm.DB) error {
+	result := db.Save(rs)
+	return result.Error
 }
 
-func (rs *RoomsServer) Delete(db *mongo.Database, ctx context.Context) error {
-	coll := db.Collection(RoomsServerCollection)
-	if _, err := coll.DeleteOne(ctx, bson.M{"_id": rs.ID}); err != nil {
-		return err
-	}
-	return nil
+func (rs *RoomsServer) Delete(db *gorm.DB) error {
+	result := db.Unscoped().Delete(rs)
+	return result.Error
 }
 
-
-// You can provide the ServerId as a parameter or use the ID from the struct
-// TODO: add user's role check
-func (rs *RoomsServer) GetRooms(db *mongo.Database, ctx context.Context, userId string) ([]RoomWithStatus, error) {
-	coll := db.Collection(RoomsCollection)
-
-	pipeline := []bson.M{
-		{
-			"$lookup": bson.M{
-				"from": RoomUserStatusCollection,
-				"let": bson.M{
-					"roomId": "$_id",
-				},
-				"pipeline": []bson.M{
-					{
-						"$match": bson.M{
-							"$expr": bson.M{
-								"$and": bson.A{
-									bson.M{"$eq": bson.A{bson.M{"$toObjectId": "$room_id"}, "$$roomId"}},
-									bson.M{"$eq": bson.A{"$server_id", rs.ID.Hex()}},
-									bson.M{"$eq": bson.A{"$user_id", userId}},
-								},
-							},
-						},
-					},
-				},
-				"as": "status",
-			},
-		},
-		{
-			"$unwind": bson.M{
-				"path": "$status",
-			},
-		},
-		{
-			"$match": bson.M{
-				"status": bson.M{"$ne": nil},
-			},
-		},
-		{ // for marshalling the RoomWithStatus struct, which has room as an embedded struct
-			"$project": bson.M{
-				"_id":    0,
-				"status": 1,
-				"room": bson.M{
-					"$mergeObjects": bson.A{
-						bson.M{"status": 0},
-						"$$ROOT",
-					},
-				},
-			},
-		},
-	}
-
-	var (
-		err    error
-		cursor *mongo.Cursor
-	)
-	if cursor, err = coll.Aggregate(ctx, pipeline); err != nil {
-		return nil, err
-	}
-	defer cursor.Close(ctx)
-
+// GetRooms gets all rooms for a user in this server
+func (rs *RoomsServer) GetRooms(db *gorm.DB, userID uuid.UUID) ([]RoomWithStatus, error) {
 	var rooms []RoomWithStatus
-	if err = cursor.All(ctx, &rooms); err != nil {
-		return nil, err
-	}
-	return rooms, nil
+
+	err := db.Model(&Room{}).
+		Joins("JOIN room_user_status ON rooms.id = room_user_status.room_id").
+		Where("room_user_status.server_id = ? AND room_user_status.user_id = ?", rs.ID, userID).
+		Select("rooms.*, room_user_status.*").
+		Find(&rooms).Error
+
+	return rooms, err
 }
