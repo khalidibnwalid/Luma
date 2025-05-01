@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/khalidibnwalid/Luma/core"
 	"github.com/khalidibnwalid/Luma/handlers"
 	"github.com/khalidibnwalid/Luma/middlewares"
@@ -18,13 +19,12 @@ import (
 func TestGetUser(t *testing.T) {
 	ctx := testutil.NewTestingContext(t)
 	t.Run("Should return user data", func(t *testing.T) {
-		user, _ := testutil.MockUser(t, ctx.Db)
+		user, _ := testutil.MockUser(t, ctx.Database.Client)
 
 		r := httptest.NewRequest(http.MethodGet, "/users", nil)
 		w := httptest.NewRecorder()
-
 		// mock handler ctx
-		r = r.WithContext(context.WithValue(r.Context(), middlewares.CtxUserIDKey, user.ID.Hex()))
+		r = r.WithContext(context.WithValue(r.Context(), middlewares.CtxUserIDKey, user.ID))
 
 		ctx.GetUser(w, r)
 
@@ -36,7 +36,7 @@ func TestGetUser(t *testing.T) {
 		testutil.AssertInterface(t, map[string]interface{}{
 			"username": user.Username,
 			"email":    user.Email,
-			"id":       user.ID.Hex(),
+			"id":       user.ID.String(),
 			"password": nil,
 		}, resBody)
 	})
@@ -46,7 +46,8 @@ func TestGetUser(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		// mock handler ctx with invalid user ID
-		r = r.WithContext(context.WithValue(r.Context(), middlewares.CtxUserIDKey, "invalidID"))
+		fakeUUID, _ := uuid.NewRandom()
+		r = r.WithContext(context.WithValue(r.Context(), middlewares.CtxUserIDKey, fakeUUID))
 
 		ctx.GetUser(w, r)
 
@@ -62,7 +63,7 @@ func TestPostUser(t *testing.T) {
 	t.Run("Should create a new user and return user data and a session cookie", func(t *testing.T) {
 		username, _ := core.GenerateRandomString(10)
 		data := []byte(`{"username": "` + username + `", "password": "testpassword", "email": "` + username + `@example.com"}`)
-		defer models.NewUser().WithUsername(username).Delete(ctx.Db, context.Background())
+		defer models.NewUser().WithUsername(username).Delete(ctx.Database.Client)
 
 		r := httptest.NewRequest(http.MethodPost, "/users", bytes.NewBuffer(data))
 		w := httptest.NewRecorder()
@@ -191,7 +192,7 @@ func TestPostUser(t *testing.T) {
 
 	t.Run("Should return error with duplicate username", func(t *testing.T) {
 		// First create a user
-		user, _ := testutil.MockUser(t, ctx.Db)
+		user, _ := testutil.MockUser(t, ctx.Database.Client)
 
 		// Try to create another user with the same username
 		data := []byte(`{"username": "` + user.Username + `", "password": "testpassword", "email": "another@example.com"}`)

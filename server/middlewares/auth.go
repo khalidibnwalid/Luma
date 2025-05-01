@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/khalidibnwalid/Luma/core"
 )
 
@@ -36,7 +37,14 @@ func JwtAuthBuilder(secret string) core.Middleware {
 			}
 
 			userId, _ := claims.GetSubject()
-			r = r.WithContext(context.WithValue(r.Context(), CtxUserIDKey, userId))
+			uuidId, err := uuid.Parse(userId)
+			// technically, this is not needed, since it is inside the JWT
+			if err != nil {
+				unahuthorized(w)
+				return
+			}
+
+			r = r.WithContext(context.WithValue(r.Context(), CtxUserIDKey, uuidId))
 			next.ServeHTTP(w, r)
 		})
 	}

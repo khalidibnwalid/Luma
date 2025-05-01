@@ -1,23 +1,21 @@
 package models
 
 import (
-	"context"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/khalidibnwalid/Luma/core"
-	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo"
+	"gorm.io/gorm"
 )
 
-const UserCollection = "users"
-
 type User struct {
-	ID             bson.ObjectID `bson:"_id" json:"id"`
-	Username       string        `bson:"username" json:"username"`
-	Email          string        `bson:"email" json:"-"`
-	HashedPassword string        `bson:"hashed_password" json:"-"`
-	CreatedAt      int64         `bson:"created_at" json:"createdAt"`
-	UpdatedAt      int64         `bson:"updated_at" json:"updatedAt"`
+	gorm.Model
+	ID             uuid.UUID `gorm:"primarykey;type:uuid;default:gen_random_uuid()" json:"id"`
+	Username       string    `gorm:"uniqueIndex" json:"username"`
+	Email          string    `gorm:"uniqueIndex" json:"-"`
+	HashedPassword string    `gorm:"column:hashed_password" json:"-"`
+	CreatedAt      time.Time `json:"createdAt"`
+	UpdatedAt      time.Time `json:"updatedAt"`
 }
 
 func NewUser(username ...string) *User {
@@ -30,13 +28,7 @@ func NewUser(username ...string) *User {
 	}
 }
 
-func (u *User) WithHexID(id string) *User {
-	objID, _ := bson.ObjectIDFromHex(id)
-	u.ID = objID
-	return u
-}
-
-func (u *User) WithObjID(id bson.ObjectID) *User {
+func (u *User) WithID(id uuid.UUID) *User {
 	u.ID = id
 	return u
 }
@@ -58,22 +50,13 @@ func (u *User) WithPassword(unhashedPassword string) *User {
 	return u
 }
 
-func (u *User) Create(db *mongo.Database, ctx context.Context) error {
-	u.ID = bson.NewObjectID()
-	u.CreatedAt = time.Now().Unix()
-	u.UpdatedAt = time.Now().Unix()
-
-	coll := db.Collection(UserCollection)
-	if _, err := coll.InsertOne(ctx, u); err != nil {
-		return err
-	}
-
-	return nil
+func (u *User) Create(db *gorm.DB) error {
+	result := db.Create(u)
+	return result.Error
 }
 
-// You can provide ID as a parameter or in the struct
-func (u *User) FindByUsername(db *mongo.Database, ctx context.Context, username ...string) error {
-	coll := db.Collection(UserCollection)
+// FindByUsername looks up a user by username
+func (u *User) FindByUsername(db *gorm.DB, username ...string) error {
 	var _username string
 
 	if len(username) > 0 {
@@ -82,15 +65,12 @@ func (u *User) FindByUsername(db *mongo.Database, ctx context.Context, username 
 		_username = u.Username
 	}
 
-	if err := coll.FindOne(ctx, bson.M{"username": _username}).Decode(&u); err != nil {
-		return err
-	}
-	return nil
+	result := db.Where("username = ?", _username).First(u)
+	return result.Error
 }
 
-// You can provide Email as a parameter or in the struct
-func (u *User) FindByEmail(db *mongo.Database, ctx context.Context, email ...string) error {
-	coll := db.Collection(UserCollection)
+// FindByEmail looks up a user by email
+func (u *User) FindByEmail(db *gorm.DB, email ...string) error {
 	var _email string
 
 	if len(email) > 0 {
@@ -99,48 +79,29 @@ func (u *User) FindByEmail(db *mongo.Database, ctx context.Context, email ...str
 		_email = u.Email
 	}
 
-	if err := coll.FindOne(ctx, bson.M{"email": _email}).Decode(&u); err != nil {
-		return err
-	}
-	return nil
+	result := db.Where("email = ?", _email).First(u)
+	return result.Error
 }
 
-func (u *User) FindByID(db *mongo.Database, ctx context.Context, id ...string) error {
-	coll := db.Collection(UserCollection)
-
-	var (
-		objId bson.ObjectID
-		err   error
-	)
+func (u *User) FindByID(db *gorm.DB, id ...uuid.UUID) error {
+	var _id uuid.UUID
 
 	if len(id) > 0 {
-		if objId, err = bson.ObjectIDFromHex(id[0]); err != nil {
-			return err
-		}
+		_id = id[0]
 	} else {
-		objId = u.ID
+		_id = u.ID
 	}
 
-	if err := coll.FindOne(ctx, bson.M{"_id": objId}).Decode(&u); err != nil {
-		return err
-	}
-
-	return nil
+	result := db.First(u, _id)
+	return result.Error
 }
 
-func (u *User) Update(db *mongo.Database, ctx context.Context) error {
-	u.UpdatedAt = time.Now().Unix()
-	coll := db.Collection(UserCollection)
-	if _, err := coll.UpdateOne(ctx, bson.M{"_id": u.ID}, bson.M{"$set": u}); err != nil {
-		return err
-	}
-	return nil
+func (u *User) Update(db *gorm.DB) error {
+	result := db.Save(u)
+	return result.Error
 }
 
-func (u *User) Delete(db *mongo.Database, ctx context.Context) error {
-	coll := db.Collection(UserCollection)
-	if _, err := coll.DeleteOne(ctx, bson.M{"_id": u.ID}); err != nil {
-		return err
-	}
-	return nil
+func (u *User) Delete(db *gorm.DB) error {
+	result := db.Delete(u)
+	return result.Error
 }

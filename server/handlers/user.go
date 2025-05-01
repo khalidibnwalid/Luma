@@ -5,20 +5,21 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/khalidibnwalid/Luma/core"
 	"github.com/khalidibnwalid/Luma/middlewares"
 	"github.com/khalidibnwalid/Luma/models"
-	"go.mongodb.org/mongo-driver/v2/mongo"
+	"gorm.io/gorm"
 )
 
 func (s *ServerContext) GetUser(w http.ResponseWriter, r *http.Request) {
 	rCtx := r.Context()
 	user := models.NewUser()
-	userID := rCtx.Value(middlewares.CtxUserIDKey).(string)
-	user.WithHexID(userID)
+	userID := rCtx.Value(middlewares.CtxUserIDKey).(uuid.UUID)
+	user.WithID(userID)
 
-	if err := user.FindByID(s.Db, rCtx); err != nil {
-		if err == mongo.ErrNoDocuments {
+	if err := user.FindByID(s.Database.Client.WithContext(rCtx)); err != nil {
+		if err == gorm.ErrRecordNotFound {
 			// unlikely to happen, but just in case a user delete their account and use their token again
 			newErrorResponse(w, http.StatusNotFound, EnumUserDoesNotExist)
 			return
@@ -76,24 +77,24 @@ func (s *ServerContext) PostUser(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 	// user exists? if so it won't return an error
-	// if it does return an error of mongo.ErrNoDocuments, we assume that the user doesn't exist
-	if err = user.FindByUsername(s.Db, rCtx); err == nil {
+	// if it does return an error of gorm.ErrRecordNotFound, we assume that the user doesn't exist
+	if err = user.FindByUsername(s.Database.Client.WithContext(rCtx)); err == nil {
 		newErrorResponse(w, http.StatusBadRequest, EnumUsernameExists)
 		return
-	} else if err != mongo.ErrNoDocuments {
+	} else if err != gorm.ErrRecordNotFound {
 		// if not a 'Not Found' error, then it is a real error
 		newErrorResponse(w, http.StatusInternalServerError, EnumInternalServerError)
 		return
 	}
 
-	if err := user.Create(s.Db, rCtx); err != nil {
+	if err := user.Create(s.Database.Client); err != nil {
 		newErrorResponse(w, http.StatusInternalServerError, EnumInternalServerError)
 		log.Printf("Error creating user: %v", err)
 		return
 	}
 
 	// create a token for the user
-	token, err := core.GenerateJwtToken(s.JwtSecret, user.ID.Hex())
+	token, err := core.GenerateJwtToken(s.JwtSecret, user.ID.String())
 	if err != nil {
 		newErrorResponse(w, http.StatusInternalServerError, EnumInternalServerError)
 		return

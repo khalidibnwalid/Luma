@@ -1,16 +1,14 @@
 package testutil
 
 import (
-	"context"
 	"testing"
 
 	"github.com/khalidibnwalid/Luma/core"
 	"github.com/khalidibnwalid/Luma/models"
-	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo"
+	"gorm.io/gorm"
 )
 
-func MockUser(t *testing.T, db *mongo.Database) (user *models.User, password string) {
+func MockUser(t *testing.T, db *gorm.DB) (user *models.User, password string) {
 	t.Helper()
 
 	randomeName, _ := core.GenerateRandomString(10)
@@ -18,19 +16,11 @@ func MockUser(t *testing.T, db *mongo.Database) (user *models.User, password str
 		WithUsername(randomeName).
 		WithPassword("123456789").
 		WithEmail("" + randomeName + "@example.com")
-	user.Create(db, context.Background())
+	user.Create(db)
 	password = "123456789"
 
 	t.Cleanup(func() {
-		user.Delete(db, context.Background())
+		user.Delete(db)
 	})
 	return user, password
-}
-
-func DeleteUserByUsername(t *testing.T, db *mongo.Database, username string) {
-	t.Helper()
-	coll := db.Collection("users")
-	if _, err := coll.DeleteOne(context.Background(), bson.M{"username": username}); err != nil {
-		t.Log("error deleting user: ", err)
-	}
 }

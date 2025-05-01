@@ -7,15 +7,14 @@ import (
 
 	"github.com/khalidibnwalid/Luma/core"
 	"github.com/khalidibnwalid/Luma/models"
-	"go.mongodb.org/mongo-driver/v2/mongo"
+	"gorm.io/gorm"
 )
 
 // TODO add a validator
 // TODO forget password
 // LoginHandler
-func (ctx *ServerContext) PostSession(w http.ResponseWriter, r *http.Request) {
+func (s *ServerContext) PostSession(w http.ResponseWriter, r *http.Request) {
 	rCtx := r.Context()
-
 	var req struct {
 		UsernameOrEmail string `json:"username"`
 		Password        string `json:"password"`
@@ -39,8 +38,8 @@ func (ctx *ServerContext) PostSession(w http.ResponseWriter, r *http.Request) {
 	// check if the user exists
 	if validateEmail(req.UsernameOrEmail) {
 		user = models.NewUser().WithEmail(req.UsernameOrEmail)
-		if err := user.FindByEmail(ctx.Db, rCtx); err != nil {
-			if err == mongo.ErrNoDocuments {
+		if err := user.FindByEmail(s.Database.Client.WithContext(rCtx)); err != nil {
+			if err == gorm.ErrRecordNotFound {
 				newErrorResponse(w, http.StatusUnauthorized, EnumUserDoesNotExist)
 				return
 			}
@@ -49,8 +48,8 @@ func (ctx *ServerContext) PostSession(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		user = models.NewUser().WithUsername(req.UsernameOrEmail)
-		if err := user.FindByUsername(ctx.Db, rCtx); err != nil {
-			if err == mongo.ErrNoDocuments {
+		if err := user.FindByUsername(s.Database.Client.WithContext(rCtx)); err != nil {
+			if err == gorm.ErrRecordNotFound {
 				newErrorResponse(w, http.StatusUnauthorized, EnumUserDoesNotExist)
 				return
 			}
@@ -69,7 +68,7 @@ func (ctx *ServerContext) PostSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := core.GenerateJwtToken(ctx.JwtSecret, user.ID.Hex())
+	token, err := core.GenerateJwtToken(s.JwtSecret, user.ID.String())
 
 	if err != nil {
 		newErrorResponse(w, http.StatusInternalServerError, EnumInternalServerError)

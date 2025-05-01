@@ -6,6 +6,7 @@ import (
 
 	"github.com/khalidibnwalid/Luma/core"
 	"github.com/khalidibnwalid/Luma/handlers"
+	"github.com/khalidibnwalid/Luma/models"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
@@ -31,6 +32,8 @@ func NewTestingContext(t *testing.T) handlers.ServerContext {
 	if err != nil {
 		t.Fatalf("Postgres connection error: %v", err)
 	}
+
+	db.Client.AutoMigrate(&models.User{})
 
 	if err = db.Client.Exec("SELECT 1").Error; err != nil {
 		t.Fatalf("Postgres ping error: %v", err)
