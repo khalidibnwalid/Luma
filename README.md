@@ -1,0 +1,22 @@
+# Dropped Project
+This project was more of a prototype, as it was my first time at Go, it needs refactoring since I regretted not taking many things into account, like:
+- In Backend:
+  - The implementation of Roles & Access Controls (mainly for server roles)
+  - The real-time notification system was not well designed
+  - First time in any langauge will grant unwanted results in the code base (First time Go-lang)
+    - Minimal test coverage, especially for edge cases
+    - Poor separation of concerns in some endpoints
+  - User Status in servers and rooms (channels)
+      - The message read status system was too simplistic
+  - Lack of proper input validation in many endpoints
+  - Many inconsistencies like error handling across endpoints
+  - No "robust" logging system
+  - Poor naming conventions
+    - I used the 'Rooms Servers' for 'Servers'
+  - Maybe I should use graphQL instead of RestAPI?
+  - Poor planing for API interfaces
+- In Frontend:
+  - Frontend state management became unwieldy as the application grew
+  - Missing proper error feedback to users in the UI
+  - The layout was missed up
+  - I discovred that I prefer creating a whole new UI, rather than cloning an existing one (in my case Discord)
