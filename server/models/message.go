@@ -8,16 +8,18 @@ import (
 )
 
 type Message struct {
-	gorm.Model
-	ID        uuid.UUID `gorm:"primarykey;type:uuid;default:gen_random_uuid()" json:"id"`
-	AuthorID  uuid.UUID `gorm:"column:author_id;type:uuid;index" json:"authorId"`
-	ServerID  uuid.UUID `gorm:"column:server_id;type:uuid;index" json:"serverId"`
-	RoomID    uuid.UUID `gorm:"column:room_id;type:uuid;index" json:"roomId"`
-	Content   string    `gorm:"column:content" json:"content"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
-	// Author shouldn't be stored in the database, only AuthorID
-	Author User `gorm:"-" json:"author"`
+	gorm.Model `json:"-"`
+	ID         uuid.UUID `gorm:"primarykey;type:uuid;default:gen_random_uuid()" json:"id"`
+	AuthorID   uuid.UUID `gorm:"column:author_id;type:uuid;index" json:"-"` // will always be called with author joined
+	ServerID   uuid.UUID `gorm:"column:server_id;type:uuid;index" json:"serverId"`
+	RoomID     uuid.UUID `gorm:"column:room_id;type:uuid;index" json:"roomId"`
+	Content    string    `gorm:"column:content" json:"content"`
+	CreatedAt  time.Time `json:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt"`
+	// Relationships
+	Author User        `gorm:"foreignKey:AuthorID;references:ID;constraint:OnDelete:CASCADE;" json:"author"`
+	Room   Room        `gorm:"foreignKey:RoomID;references:ID;constraint:OnDelete:CASCADE;" json:"room"`
+	Server RoomsServer `gorm:"foreignKey:ServerID;references:ID;constraint:OnDelete:CASCADE;" json:"server"`
 }
 
 // TableName specifies the table name for Message
@@ -80,21 +82,4 @@ func (msg *Message) FindByID(db *gorm.DB, id ...uuid.UUID) error {
 
 	result := db.First(msg, _id)
 	return result.Error
-}
-
-// GetMessagesByRoom retrieves messages for a specific room with optional pagination
-func (msg *Message) GetMessagesByRoom(db *gorm.DB, roomID uuid.UUID, limit int) ([]Message, error) {
-	var messages []Message
-
-	if limit <= 0 {
-		limit = 50 // Default limit
-	}
-
-	result := db.Preload("Author").
-		Where("room_id = ?", roomID).
-		Order("created_at DESC").
-		Limit(limit).
-		Find(&messages)
-
-	return messages, result.Error
 }

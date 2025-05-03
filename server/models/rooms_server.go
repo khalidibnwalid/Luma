@@ -8,12 +8,15 @@ import (
 )
 
 type RoomsServer struct {
-	gorm.Model
-	ID        uuid.UUID `gorm:"primarykey;type:uuid;default:gen_random_uuid()" json:"id"`
-	OwnerID   uuid.UUID `gorm:"column:owner_id;type:uuid" json:"ownerId"`
-	Name      string    `gorm:"column:name" json:"name"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	gorm.Model `json:"-"`
+	ID         uuid.UUID `gorm:"primarykey;type:uuid;default:gen_random_uuid()" json:"id"`
+	OwnerID    uuid.UUID `gorm:"column:owner_id;type:uuid" json:"ownerId"`
+	Name       string    `gorm:"column:name" json:"name"`
+	CreatedAt  time.Time `json:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt"`
+	// Relationships
+	Owner  User             `gorm:"foreignKey:OwnerID;constraint:OnDelete:CASCADE;" json:"owner"`
+	Status []RoomUserStatus `gorm:"foreignKey:ServerID;" json:"status"`
 }
 
 func NewRoomsServer() *RoomsServer {
@@ -67,11 +70,11 @@ func (rs *RoomsServer) Delete(db *gorm.DB) error {
 func (rs *RoomsServer) GetRooms(db *gorm.DB, userID uuid.UUID) ([]RoomWithStatus, error) {
 	var rooms []RoomWithStatus
 
-	err := db.Model(&Room{}).
-		Joins("JOIN room_user_status ON rooms.id = room_user_status.room_id").
-		Where("room_user_status.server_id = ? AND room_user_status.user_id = ?", rs.ID, userID).
-		Select("rooms.*, room_user_status.*").
-		Find(&rooms).Error
+	err := db.Table("rooms").
+		Select("rooms.*, room_user_status.id as status_id, room_user_status.user_id, room_user_status.server_id, room_user_status.room_id, room_user_status.last_read_message_id, room_user_status.created_at as status_created_at, room_user_status.updated_at as status_updated_at").
+		Joins("LEFT JOIN room_user_status ON rooms.id = room_user_status.room_id").
+		Where("rooms.server_id = ? AND room_user_status.user_id = ?", rs.ID, userID).
+		Scan(&rooms).Error
 
 	return rooms, err
 }

@@ -6,20 +6,19 @@ import (
 )
 
 type RoomUserStatus struct {
-	gorm.Model
-	UserID        uuid.UUID `gorm:"column:user_id;type:uuid;index" json:"userId"`
+	gorm.Model    `json:"-"`
+	UserID        uuid.UUID `gorm:"primaryKey;column:user_id;type:uuid;index" json:"userId"`
 	ServerID      uuid.UUID `gorm:"column:server_id;type:uuid;index" json:"serverId"`
-	RoomID        uuid.UUID `gorm:"column:room_id;type:uuid;index" json:"roomId"`
+	RoomID        uuid.UUID `gorm:"primaryKey;column:room_id;type:uuid;index" json:"roomId"`
 	LastReadMsgID uuid.UUID `gorm:"column:last_read_msg_id;type:uuid" json:"lastReadMsgId"`
+	// Relationships
+	Room   Room        `gorm:"foreignKey:RoomID;references:ID;constraint:OnDelete:CASCADE;" json:"room"`
+	Server RoomsServer `gorm:"foreignKey:ServerID;references:ID;constraint:OnDelete:CASCADE;" json:"server"`
+	User   User        `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE;" json:"user"`
 }
 
 func (RoomUserStatus) TableName() string {
 	return "room_user_status"
-}
-
-type RoomWithStatus struct {
-	*Room  `gorm:"embedded"`
-	Status *RoomUserStatus `gorm:"embedded" json:"status"`
 }
 
 func NewRoomUserStatus() *RoomUserStatus {
@@ -53,7 +52,9 @@ func (r *RoomUserStatus) Create(db *gorm.DB) error {
 
 // only updates the LastReadMsgID fields
 func (r *RoomUserStatus) Update(db *gorm.DB) error {
-	result := db.Model(r).Update("last_read_msg_id", r.LastReadMsgID)
+	result := db.Model(&RoomUserStatus{}).
+		Where("user_id = ? AND room_id = ?", r.UserID, r.RoomID).
+		Update("last_read_msg_id", r.LastReadMsgID)
 	return result.Error
 }
 

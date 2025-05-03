@@ -11,14 +11,22 @@ const messagesLimit = 50
 const RoomsCollection = "rooms"
 
 type Room struct {
-	gorm.Model
-	ID        uuid.UUID `gorm:"primarykey;type:uuid;default:gen_random_uuid()" json:"id"`
-	ServerID  uuid.UUID `gorm:"column:server_id;type:uuid;index" json:"serverId"`
-	Name      string    `gorm:"column:name" json:"name"`
-	GroupName string    `gorm:"column:group_name" json:"groupName"`
-	Type      string    `gorm:"column:type" json:"type"` // direct, server room, server voice room, or users group
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	gorm.Model `json:"-"`
+	ID         uuid.UUID `gorm:"primarykey;type:uuid;default:gen_random_uuid()" json:"id"`
+	ServerID   uuid.UUID `gorm:"column:server_id;type:uuid;index" json:"serverId"`
+	Name       string    `gorm:"column:name" json:"name"`
+	GroupName  string    `gorm:"column:group_name" json:"groupName"`
+	Type       string    `gorm:"column:type" json:"type"` // direct, server room, server voice room, or users group
+	CreatedAt  time.Time `json:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt"`
+	// Relationships
+	Server   RoomsServer `gorm:"foreignKey:ServerID;references:ID;constraint:OnDelete:CASCADE;" json:"server"`
+	Messages []Message   `gorm:"foreignKey:RoomID;references:ID;constraint:OnDelete:CASCADE;" json:"messages"`
+}
+
+type RoomWithStatus struct {
+	*Room  `gorm:"embedded"`
+	Status *RoomUserStatus `gorm:"embedded" json:"status"`
 }
 
 func (Room) TableName() string {
@@ -80,7 +88,7 @@ func (r *Room) GetMessages(db *gorm.DB, limit ...int) ([]Message, error) {
 
 	// Use joins to fetch messages with author information
 	result := db.Model(&Message{}).
-		Joins("JOIN users ON messages.author_id = users.id").
+		Joins("Author").
 		Where("messages.room_id = ?", r.ID).
 		Order("messages.created_at DESC").
 		Limit(_limit).

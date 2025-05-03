@@ -7,11 +7,14 @@ import (
 
 // ServerUserStatus tracks the status of a user in a server
 type ServerUserStatus struct {
-	gorm.Model
-	UserID   uuid.UUID `gorm:"column:user_id;type:uuid;index" json:"userId"`
-	ServerID uuid.UUID `gorm:"column:server_id;type:uuid;index" json:"serverId"`
-	Nickname string    `gorm:"column:nickname" json:"nickname"`
-	Roles    []string  `gorm:"type:text[];column:roles" json:"roles"`
+	gorm.Model `json:"-"`
+	UserID     uuid.UUID `gorm:"primaryKey;column:user_id;type:uuid;index" json:"userId"`
+	ServerID   uuid.UUID `gorm:"primaryKey;column:server_id;type:uuid;index" json:"serverId"`
+	Nickname   string    `gorm:"column:nickname" json:"nickname"`
+	Roles      []string  `gorm:"type:text[];column:roles" json:"roles"`
+	// Relationships
+	User   User        `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE;" json:"user"`
+	Server RoomsServer `gorm:"foreignKey:ServerID;references:ID;constraint:OnDelete:CASCADE;" json:"server"`
 }
 
 func (ServerUserStatus) TableName() string {

@@ -9,13 +9,18 @@ import (
 )
 
 type User struct {
-	gorm.Model
+	gorm.Model     `json:"-"`
 	ID             uuid.UUID `gorm:"primarykey;type:uuid;default:gen_random_uuid()" json:"id"`
 	Username       string    `gorm:"uniqueIndex" json:"username"`
 	Email          string    `gorm:"uniqueIndex" json:"-"`
 	HashedPassword string    `gorm:"column:hashed_password" json:"-"`
 	CreatedAt      time.Time `json:"createdAt"`
 	UpdatedAt      time.Time `json:"updatedAt"`
+	// Relationships
+	Messages      []Message          `gorm:"foreignKey:AuthorID;constraint:OnDelete:CASCADE;" json:"messages"`
+	OwnedServers  []RoomsServer      `gorm:"foreignKey:OwnerID;constraint:OnDelete:CASCADE;" json:"ownedServers"`
+	ServersStatus []ServerUserStatus `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE;" json:"serversStatus"`
+	RoomsStatus   []RoomUserStatus   `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE;" json:"roomsStatus"`
 }
 
 func NewUser(username ...string) *User {
