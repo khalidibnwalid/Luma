@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/khalidibnwalid/Luma/core"
 	"github.com/khalidibnwalid/Luma/middlewares"
@@ -22,15 +23,21 @@ var upgrader = websocket.Upgrader{
 func (ctx *ServerContext) validateRoomID(w http.ResponseWriter, r *http.Request) (*models.Room, error) {
 	rCtx := r.Context()
 	roomID := r.PathValue("id")
+	w.Header().Set("Content-Type", "application/json")
+
 	if roomID == "" {
-		w.Header().Set("Content-Type", "application/json")
 		newErrorResponse(w, http.StatusBadRequest, EnumBadRequest, "Room ID is required")
 		return &models.Room{}, nil
 	}
 
+	uuidRoomID, err := uuid.Parse(roomID)
+	if err != nil {
+		newErrorResponse(w, http.StatusBadRequest, EnumBadRequest, "Invalid Room ID format")
+		return &models.Room{}, nil
+	}
+
 	roomData := models.Room{}
-	if err := roomData.FindById(ctx.Db, rCtx, roomID); err != nil {
-		w.Header().Set("Content-Type", "application/json")
+	if err := roomData.FindByID(ctx.Database.Client.WithContext(rCtx), uuidRoomID); err != nil {
 		newErrorResponse(w, http.StatusNotFound, EnumNotFound, "Room not found")
 		return &models.Room{}, nil
 	}
@@ -53,14 +60,14 @@ func (ctx *ServerContext) WSRoom(store *core.TopicStore) http.HandlerFunc {
 		}
 		defer conn.Close()
 
-		log.Printf("Room [%s] Connected\n", room.ID.Hex())
-		roomTopic := store.GetOrCreateRoom(room.ID.Hex())
+		log.Printf("Room [%s] Connected\n", room.ID)
+		roomTopic := store.GetOrCreateRoom(room.ID.String())
 		roomTopic.Subscribe(conn)
 		defer roomTopic.Unsubscribe(conn)
 
-		userId := rCtx.Value(middlewares.CtxUserIDKey).(string)
-		user := models.NewUser().WithHexID(userId)
-		user.FindByID(ctx.Db, rCtx) // not finding the user
+		userId := rCtx.Value(middlewares.CtxUserIDKey).(uuid.UUID)
+		user := models.NewUser().WithID(userId)
+		user.FindByID(ctx.Database.Client) // not finding the user
 
 		for {
 			var body struct {
@@ -77,10 +84,10 @@ func (ctx *ServerContext) WSRoom(store *core.TopicStore) http.HandlerFunc {
 
 			var msg models.Message
 			msg.Content = body.Content
-			msg.RoomID = room.ID.Hex()
+			msg.RoomID = room.ID
 			msg.ServerID = room.ServerID
-			msg.AuthorID = user.ID.Hex()
-			msg.Create(ctx.Db, rCtx)
+			msg.AuthorID = user.ID
+			msg.Create(ctx.Database.Client.WithContext(rCtx))
 
 			msg.Author = *user
 
@@ -97,7 +104,7 @@ func (ctx *ServerContext) GETRoomMessages(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	messages, err := room.GetMessages(ctx.Db, rCtx)
+	messages, err := room.GetMessages(ctx.Database.Client.WithContext(rCtx))
 	if err != nil {
 		http.Error(w, "Error fetching messages", http.StatusInternalServerError)
 		return
@@ -115,7 +122,7 @@ func (ctx *ServerContext) PatchRoomStatus(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	userId := rCtx.Value(middlewares.CtxUserIDKey).(string)
+	userId := rCtx.Value(middlewares.CtxUserIDKey).(uuid.UUID)
 
 	var body struct {
 		LastReadMsgID string `json:"lastReadMsgId"`
@@ -126,20 +133,27 @@ func (ctx *ServerContext) PatchRoomStatus(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	status := models.NewRoomUserStatus().WithUserID(userId).WithRoomID(room.ID.Hex())
-	if err := status.FindByUserIdAndRoomId(ctx.Db, rCtx); err != nil {
+	uuidLastMsgID, err := uuid.Parse(body.LastReadMsgID)
+	if err != nil {
+		log.Println("Error parsing LastReadMsgId:", err)
+		newErrorResponse(w, http.StatusBadRequest, EnumBadRequest, "Invalid LastReadMsgId format")
+		return
+	}
+
+	status := models.NewRoomUserStatus().WithUserID(userId).WithRoomID(room.ID)
+	if err := status.Find(ctx.Database.Client.WithContext(rCtx)); err != nil {
 		newErrorResponse(w, http.StatusNotFound, EnumNotFound, "Room status not found")
 		return
 	}
 
-	if body.LastReadMsgID == status.LastReadMsgID {
+	if uuidLastMsgID == status.LastReadMsgID {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
-	status.LastReadMsgID = body.LastReadMsgID
+	status.LastReadMsgID = uuidLastMsgID
 
-	if err := status.Update(ctx.Db, rCtx); err != nil {
+	if err := status.Update(ctx.Database.Client.WithContext(rCtx)); err != nil {
 		newErrorResponse(w, http.StatusInternalServerError, EnumInternalServerError)
 		return
 	}

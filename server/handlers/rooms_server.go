@@ -3,8 +3,10 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/khalidibnwalid/Luma/middlewares"
 	"github.com/khalidibnwalid/Luma/models"
 )
@@ -12,15 +14,21 @@ import (
 func (ctx *ServerContext) validateRoomsServerID(w http.ResponseWriter, r *http.Request) (*models.RoomsServer, error) {
 	rCtx := r.Context()
 	serverID := r.PathValue("id")
+	w.Header().Set("Content-Type", "application/json")
+
 	if serverID == "" {
-		w.Header().Set("Content-Type", "application/json")
 		newErrorResponse(w, http.StatusBadRequest, EnumServerIdRequired)
 		return &models.RoomsServer{}, errors.New(EnumServerIdRequired)
 	}
 
+	uuidServerID, err := uuid.Parse(serverID)
+	if err != nil {
+		newErrorResponse(w, http.StatusBadRequest, EnumServerIdInvalid)
+		return &models.RoomsServer{}, errors.New(EnumServerIdInvalid)
+	}
+
 	serverData := models.RoomsServer{}
-	if err := serverData.FindById(ctx.Db, rCtx, serverID); err != nil {
-		w.Header().Set("Content-Type", "application/json")
+	if err := serverData.FindByID(ctx.Database.Client.WithContext(rCtx), uuidServerID); err != nil {
 		newErrorResponse(w, http.StatusNotFound, EnumServerNotFound)
 		return &models.RoomsServer{}, errors.New(EnumServerNotFound)
 	}
@@ -45,9 +53,9 @@ func (ctx *ServerContext) GetRoomsServer(w http.ResponseWriter, r *http.Request)
 // get all servers of a user
 func (ctx *ServerContext) GetUserRoomsServer(w http.ResponseWriter, r *http.Request) {
 	rCtx := r.Context()
-	userID := rCtx.Value(middlewares.CtxUserIDKey).(string)
+	userID := rCtx.Value(middlewares.CtxUserIDKey).(uuid.UUID)
 
-	servers, err := models.NewServerUserStatus().WithUserID(userID).GetServers(ctx.Db, rCtx)
+	servers, err := models.NewServerUserStatus().WithUserID(userID).GetServers(ctx.Database.Client.WithContext(rCtx))
 	if err != nil {
 		http.Error(w, "Error getting servers", http.StatusInternalServerError)
 		return
@@ -64,26 +72,26 @@ func (ctx *ServerContext) PostRoomsServer(w http.ResponseWriter, r *http.Request
 		Name string `json:"name"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		newErrorResponse(w, http.StatusBadRequest, EnumBadRequest)
 		return
 	}
 	if t.Name == "" {
-		http.Error(w, "'name' is required", http.StatusBadRequest)
+		newErrorResponse(w, http.StatusBadRequest, EnumServerNameRequired)
 		return
 	}
 
-	userID := rCtx.Value(middlewares.CtxUserIDKey).(string)
+	userID := rCtx.Value(middlewares.CtxUserIDKey).(uuid.UUID)
 
 	server := models.NewRoomsServer().WithOwnerID(userID)
 	server.Name = t.Name
 
-	if err := server.Create(ctx.Db, rCtx); err != nil {
+	if err := server.Create(ctx.Database.Client.WithContext(rCtx)); err != nil {
 		newErrorResponse(w, http.StatusInternalServerError, EnumInternalServerError)
 		return
 	}
 
-	userStatus := models.NewServerUserStatus().WithUserID(userID).WithServerID(server.ID.Hex())
-	if err := userStatus.Create(ctx.Db, rCtx); err != nil {
+	userStatus := models.NewServerUserStatus().WithUserID(userID).WithServerID(server.ID)
+	if err := userStatus.Create(ctx.Database.Client.WithContext(rCtx)); err != nil {
 		newErrorResponse(w, http.StatusInternalServerError, EnumInternalServerError)
 		return
 	}
@@ -100,19 +108,20 @@ func (ctx *ServerContext) PostRoomsServer(w http.ResponseWriter, r *http.Request
 
 func (ctx *ServerContext) GetRoomsOfServer(w http.ResponseWriter, r *http.Request) {
 	rCtx := r.Context()
-	userId := rCtx.Value(middlewares.CtxUserIDKey).(string)
+	userId := rCtx.Value(middlewares.CtxUserIDKey).(uuid.UUID)
 	server, err := ctx.validateRoomsServerID(w, r)
 	if err != nil {
 		return
 	}
 
-	rooms, err := server.GetRooms(ctx.Db, rCtx, userId)
+	rooms, err := server.GetRooms(ctx.Database.Client.WithContext(rCtx), userId)
 	if err != nil {
 		newErrorResponse(w, http.StatusInternalServerError, EnumInternalServerError)
 		return
 	}
-
 	json, _ := json.Marshal(rooms)
+	log.Println("rooms", rooms)
+	log.Println("json", string(json))
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(json)
 }
@@ -144,27 +153,27 @@ func (ctx *ServerContext) PostRoomToServer(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	userId := rCtx.Value(middlewares.CtxUserIDKey).(string)
+	userId := rCtx.Value(middlewares.CtxUserIDKey).(uuid.UUID)
 
 	room := models.Room{
-		ServerID:  server.ID.Hex(),
+		ServerID:  server.ID,
 		Type:      t.Type,
 		Name:      t.Name,
 		GroupName: t.GroupName,
 	}
 
-	if err := room.Create(ctx.Db, rCtx); err != nil {
+	if err := room.Create(ctx.Database.Client.WithContext(rCtx)); err != nil {
 		newErrorResponse(w, http.StatusInternalServerError, EnumInternalServerError)
 		return
 	}
 
 	status := models.RoomUserStatus{
-		UserID:    userId,
-		RoomID:    room.ID.Hex(),
-		ServerID:  server.ID.Hex(),
+		UserID:   userId,
+		RoomID:   room.ID,
+		ServerID: server.ID,
 	}
 
-	status.Create(ctx.Db, rCtx)
+	status.Create(ctx.Database.Client.WithContext(rCtx))
 
 	RoomWithStatus := models.RoomWithStatus{
 		Room:   &room,
@@ -183,10 +192,10 @@ func (ctx *ServerContext) JoinServer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID := rCtx.Value(middlewares.CtxUserIDKey).(string)
+	userID := rCtx.Value(middlewares.CtxUserIDKey).(uuid.UUID)
 
-	userStatus := models.NewServerUserStatus().WithUserID(userID).WithServerID(server.ID.Hex())
-	if err := userStatus.Create(ctx.Db, rCtx); err != nil {
+	userStatus := models.NewServerUserStatus().WithUserID(userID).WithServerID(server.ID)
+	if err := userStatus.Create(ctx.Database.Client.WithContext(rCtx)); err != nil {
 		newErrorResponse(w, http.StatusInternalServerError, EnumInternalServerError)
 		return
 	}

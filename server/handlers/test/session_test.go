@@ -2,7 +2,6 @@ package handlers_test
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -65,8 +64,8 @@ func TestPostSession(t *testing.T) {
 
 	// treat "Should login" as "Should return a cookie session + and user data"
 	t.Run("Should return a cookie and user data if username and password are correct", func(t *testing.T) {
-		user, pass := testutil.MockUser(t, ctx.Db)
-		defer user.Delete(ctx.Db, context.Background())
+		user, pass := testutil.MockUser(t, ctx.Database.Client)
+		defer user.Delete(ctx.Database.Client)
 
 		data := []byte(`{"username": "` + user.Username + `", "password": "` + pass + `"}`)
 
@@ -104,14 +103,14 @@ func TestPostSession(t *testing.T) {
 		testutil.AssertInterface(t, map[string]interface{}{
 			"username": user.Username,
 			"email":    user.Email,
-			"id":       user.ID.Hex(),
+			"id":       user.ID.String(),
 			"password": nil,
 		}, resBody)
 	})
 
 	t.Run("Should return a cookie and user data if email and password are correct", func(t *testing.T) {
-		user, pass := testutil.MockUser(t, ctx.Db)
-		defer user.Delete(ctx.Db, context.Background())
+		user, pass := testutil.MockUser(t, ctx.Database.Client)
+		defer user.Delete(ctx.Database.Client)
 
 		data := []byte(`{"username": "` + user.Username + `", "password": "` + pass + `"}`)
 
@@ -148,14 +147,14 @@ func TestPostSession(t *testing.T) {
 		testutil.AssertInterface(t, map[string]interface{}{
 			"username": user.Username,
 			"email":    user.Email,
-			"id":       user.ID.Hex(),
+			"id":       user.ID.String(),
 			"password": nil,
 		}, resBody)
 	})
 
 	t.Run("Should not login if password is wrong", func(t *testing.T) {
-		user, _ := testutil.MockUser(t, ctx.Db)
-		defer user.Delete(ctx.Db, context.Background())
+		user, _ := testutil.MockUser(t, ctx.Database.Client)
+		defer user.Delete(ctx.Database.Client)
 
 		data := []byte(`{"username": "` + user.Username + `", "password": "wrongpassword"}`)
 
